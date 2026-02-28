@@ -24,8 +24,9 @@ def generate_mock_data():
         for zone_name, plot_id in ZONES.items():
             # Generate random realistic data
             payload = {
-                "plot_id": plot_id,  # <--- CHANGE THIS KEY to "plot_id"
-                "moisture": random.randint(10, 95)
+                "plot_id": plot_id,
+                "moisture": random.randint(10, 95),
+                "light": random.randint(200, 800) 
             }
 
             try:
