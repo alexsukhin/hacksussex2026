@@ -10,10 +10,15 @@ SLEEP_INTERVAL = 5 # Send data every 5 seconds
 # Generate 4 static UUIDs to represent our 4 physical zones/sensors
 # We keep these static so the frontend can group data by zone
 ZONES = {
-    "Zone 1 (Arduino)": "8b3e3560-cb9d-4ebf-8571-d69a2191bbfa",
-    "Zone 2 (Mock)": "bef10565-2068-4d00-8c89-1e79f359048b",
-    "Zone 3 (Mock)": "27afa7d4-1a5c-451a-b72b-c70a60e4eb5d",
-    "Zone 4 (Mock)": "28b31c76-7597-4206-ab54-b004f122b022",
+    "Zone 1 (Arduino)": "950b5dd5-c2e6-4aeb-b2d0-8cf5b89c033e",
+    "Zone 2 (Mock)": "03256848-ddcf-4e66-b122-30a4a0af27ac",
+    "Zone 3 (Mock)": "4084dce6-1537-45e7-a435-05479b6c5263",
+    "Zone 4 (Mock)": "f65f9eda-4f72-4273-bc83-014c6fc3a7d7",
+    "Zone 5 (Mock)": "27b29098-ce21-4b11-b7e5-69d21fe96c92",
+    "Zone 6 (Mock)": "ac02134e-594b-403f-a49d-164d04393b60",
+    "Zone 7 (Mock)": "a72aa36a-757b-4132-b710-9dafb93ff030",
+    "Zone 8 (Mock)": "b8a51a6b-e674-42c8-bdf6-029aa5e30c94",
+    "Zone 9 (Mock)": "e6e36356-163d-4d79-ad3b-9a195cd6d5b8",
 }
 
 def generate_mock_data():

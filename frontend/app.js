@@ -31,10 +31,15 @@ const CROP_REQ_TEXT = {
 
 // Backend plot → grid mapping
 const ZONES_BACKEND = {
-    "8b3e3560-cb9d-4ebf-8571-d69a2191bbfa": 0,
-    "bef10565-2068-4d00-8c89-1e79f359048b": 1,
-    "27afa7d4-1a5c-451a-b72b-c70a60e4eb5d": 2,
-    "28b31c76-7597-4206-ab54-b004f122b022": 3,
+    "950b5dd5-c2e6-4aeb-b2d0-8cf5b89c033e": 0,
+    "03256848-ddcf-4e66-b122-30a4a0af27ac": 1,
+    "4084dce6-1537-45e7-a435-05479b6c5263": 2,
+    "f65f9eda-4f72-4273-bc83-014c6fc3a7d7": 3,
+    "27b29098-ce21-4b11-b7e5-69d21fe96c92": 4,
+    "ac02134e-594b-403f-a49d-164d04393b60": 5,
+    "a72aa36a-757b-4132-b710-9dafb93ff030": 6,
+    "b8a51a6b-e674-42c8-bdf6-029aa5e30c94": 7,
+    "e6e36356-163d-4d79-ad3b-9a195cd6d5b8": 8,
 };
 
 let currentLocation = { lat: 51.5074, lon: -0.1278 }; // default London
