@@ -303,6 +303,7 @@ async function fetchWeather() {
         strip.innerHTML = '';
         const now = new Date();
 
+        // Render hourly forecast
         data.hourly.forEach(h => {
             const t    = new Date(h.time);
             const pill = document.createElement('div');
@@ -320,8 +321,22 @@ async function fetchWeather() {
             .filter(h => { const t = new Date(h.time); return t > now && t < new Date(+now + 12 * 3600000); })
             .some(h => h.chance_of_rain > 60);
 
+        // --- New: Rain soon warning for next 6 hours ---
+        const rainSoon = data.hourly
+            .filter(h => { const t = new Date(h.time); return t > now && t < new Date(+now + 6 * 3600000); })
+            .some(h => h.chance_of_rain > 20); // >20% is "some rain"
+
+        const warningEl = document.getElementById('rain-warning');
+        if (rainSoon) {
+            warningEl.textContent = '🌧 Rain soon — no need to water!';
+        } else {
+            warningEl.textContent = '';
+        }
+
         renderAlerts();
-    } catch (e) { /* weather API offline */ }
+    } catch (e) {
+        /* weather API offline */
+    }
 }
 
 // ─── UTILITIES ───────────────────────────────────────────────
