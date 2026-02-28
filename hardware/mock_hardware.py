@@ -10,7 +10,7 @@ SLEEP_INTERVAL = 10 # Send data every 10 seconds
 # Generate 4 static UUIDs to represent our 4 physical zones/sensors
 # We keep these static so the frontend can group data by zone
 ZONES = {
-    "Zone 1 (Arduino)": "950b5dd5-c2e6-4aeb-b2d0-8cf5b89c033e",
+    # "Zone 1 (Arduino)": "950b5dd5-c2e6-4aeb-b2d0-8cf5b89c033e",
     "Zone 2 (Mock)": "03256848-ddcf-4e66-b122-30a4a0af27ac",
     "Zone 3 (Mock)": "4084dce6-1537-45e7-a435-05479b6c5263",
     "Zone 4 (Mock)": "f65f9eda-4f72-4273-bc83-014c6fc3a7d7",
