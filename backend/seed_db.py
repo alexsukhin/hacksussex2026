@@ -16,6 +16,11 @@ def seed_plots():
                 Plot(name="Zone 2 (Mock)", crop_type="Lettuce", ideal_moisture=70),
                 Plot(name="Zone 3 (Mock)", crop_type="Carrots", ideal_moisture=50),
                 Plot(name="Zone 4 (Mock)", crop_type="Peppers", ideal_moisture=65),
+                Plot(name="Zone 5 (Mock)", crop_type="Cabbage", ideal_moisture=55),
+                Plot(name="Zone 6 (Mock)", crop_type="Spinach", ideal_moisture=60),
+                Plot(name="Zone 7 (Mock)", crop_type="Broccoli", ideal_moisture=65),
+                Plot(name="Zone 8 (Mock)", crop_type="Kale", ideal_moisture=60),
+                Plot(name="Zone 9 (Mock)", crop_type="Radish", ideal_moisture=50),
             ]
             db.add_all(zones)
             db.commit()
