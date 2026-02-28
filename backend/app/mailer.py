@@ -25,35 +25,17 @@ class EmailNotifier:
         self.use_tls = use_tls
 
     def send(self, to_email: str, subject: str, body: str):
+        print("Connecting to SMTP...")
         msg = EmailMessage()
-        msg["From"] = self.username or "or"
+        msg["From"] = self.username
         msg["To"] = to_email
         msg["Subject"] = subject
         msg.set_content(body)
 
         with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
-            if self.use_tls:
-                server.starttls()
-            if self.username and self.password:
-                server.login(self.username, self.password)
+            server.starttls()
+            print("Logging in...")
+            server.login(self.username, self.password)
+            print("Sending message...")
             server.send_message(msg)
-
-
-watered = True #Dummy Condition
-
-notifier = EmailNotifier(
-    smtp_host="smtp.gmail.com",      
-    smtp_port=587,
-    username="rainmakeremailnotifier@gmail.com",  
-    password="ielp ubim yidw iqif",   
-    use_tls=True,
-)
-
-if watered:
-    notifier.send(
-        to_email="lewiscorry12@gmail.com",
-        subject="Crops watered",
-        body="Crops have been watered", #Later include how much water and which area of farm
-    
-    )
-    print("email sent")
+            print("SMTP send complete.")
