@@ -315,7 +315,7 @@ async function fetchWeather() {
 
         // Suppress dry alerts if heavy rain forecast within 12 hours
         rainExpected = data.hourly
-            .filter(h => { const t = new Date(h.time); return t > now && t < new Date(+now + 12 * 3600000); })
+            .filter(h => { const t = new Date(h.time); return t > now && t < new Date(+now + 6 * 3600000); })
             .some(h => h.chance_of_rain > 60);
 
         // --- New: Rain soon warning for next 6 hours ---
