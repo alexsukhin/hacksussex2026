@@ -61,17 +61,29 @@ let dragStart = null;
 function recalcStatus(i) {
     const cell = cells[i];
     if (cell.moisture === null || !cell.idealMoisture) {
-        cell.status = 'unset'; cell.color = 'unset'; cell.score = null;
+        cell.status = 'unset'; cell.color = 'unset'; cell.score = null; cell.waterNeeded = 0;
         return;
     }
     const score = Math.round((cell.moisture / cell.idealMoisture) * 100);
     cell.score = score;
+    
+    // Calculate required water volume based on moisture deficit and light levels
+    if (cell.moisture < cell.idealMoisture) {
+        const moistureDeficit = cell.idealMoisture - cell.moisture;
+        const lightFactor = (cell.light && cell.idealLight) ? (cell.light / cell.idealLight) : 1;
+        const baseLitersPerPercent = 2; // Assuming 2L needed per 1% deficit
+        
+        // Round to 1 decimal place
+        cell.waterNeeded = Math.round((moistureDeficit * baseLitersPerPercent * lightFactor) * 10) / 10;
+    } else {
+        cell.waterNeeded = 0;
+    }
+
     if (score < 80)        { cell.status = 'dry';           cell.color = 'red'; }
     else if (score > 120)  { cell.status = 'oversaturated'; cell.color = 'blue'; }
     else                   { cell.status = 'optimal';       cell.color = 'green'; }
 }
 
-// ─── GRID RENDER ────────────────────────────────────────────
 // ─── GRID RENDER ────────────────────────────────────────────
 function renderGrid() {
     const grids = document.querySelectorAll('.field-grid');
@@ -124,11 +136,24 @@ function renderGrid() {
 
             } else {
                 // Field Monitor Tab: Live data, no selection listeners
+                
+                // Calculate what text to show instead of the raw percentage
+                let moistureDisplay = '— unset';
+                if (cell.moisture !== null) {
+                    if (cell.waterNeeded > 0) {
+                        moistureDisplay = `🚰 ${cell.waterNeeded}L needed`;
+                    } else if (cell.status === 'oversaturated') {
+                        moistureDisplay = `💧 Oversaturated`;
+                    } else {
+                        moistureDisplay = `✅ 0L needed`;
+                    }
+                }
+
                 el.innerHTML = `
                     <div class="cell-status-dot"></div>
                     <div class="cell-label">
                         <div class="cell-crop">${cropText}</div>
-                        <div class="cell-moisture">${cell.moisture !== null ? '💧 ' + cell.moisture + '%' : '— unset'}</div>
+                        <div class="cell-moisture">${moistureDisplay}</div>
                     </div>
                 `;
             }
@@ -146,6 +171,12 @@ function renderStats() {
         const barColor  = dotColor;
         const scoreWidth = cell.score?Math.min(100,cell.score):0;
         const cropLabel = cell.crop?`${CROPS[cell.crop]?.emoji} ${CROPS[cell.crop]?.label}`:'—';
+        
+        // Generate the water requirement text if needed
+        const waterText = cell.waterNeeded > 0 
+            ? `<br><span style="color:#e74c3c;font-weight:600;display:inline-block;margin-top:4px;">🚰 ${cell.waterNeeded}L needed</span>` 
+            : '';
+
         return `
             <div class="zone-row">
                 <div class="zone-dot" style="background:${dotColor}"></div>
@@ -153,14 +184,14 @@ function renderStats() {
                 <div class="zone-crop">${cropLabel}</div>
                 <div class="score-bar-wrap"><div class="score-bar" style="width:${scoreWidth}%;background:${barColor}"></div></div>
                 <div class="zone-score" style="color:${dotColor}">${cell.score!==null?cell.score+'%':'—'}</div>
-                <div style="font-size:0.65rem;color:var(--muted);min-width:5rem;text-align:right">
+                <div style="font-size:0.65rem;color:var(--muted);min-width:6rem;text-align:right">
                     ${cell.moisture!==null? '💧'+cell.moisture+'% ☀️'+cell.light:'no data'}
+                    ${waterText}
                 </div>
             </div>
         `;
     }).join('');
 }
-
 // ─── ALERTS RENDER ──────────────────────────────────────────
 function renderAlerts() {
     const list = document.getElementById('alerts-list');
@@ -168,9 +199,9 @@ function renderAlerts() {
     cells.forEach(cell=>{
         if(cell.status==='dry' && cell.crop){
             if(rainExpected) {
-                alerts.push({icon:'🌧', text:`${cell.name} (${CROPS[cell.crop]?.label}) is dry — rain forecast, watering suppressed`, time:'Suppressed'});
+                alerts.push({icon:'🌧', text:`${cell.name} (${CROPS[cell.crop]?.label}) is dry — rain forecast, watering of ${cell.waterNeeded}L suppressed`, time:'Suppressed'});
             } else {
-                alerts.push({icon:'🔴', text:`${cell.name} (${CROPS[cell.crop]?.label}) needs water now! Moisture: ${cell.moisture}%`, time:'Now'});
+                alerts.push({icon:'🔴', text:`${cell.name} (${CROPS[cell.crop]?.label}) needs water! Moisture at ${cell.moisture}%. Apply approx ${cell.waterNeeded}L.`, time:'Now'});
             }
         }
         if(cell.status==='oversaturated'){
@@ -180,7 +211,6 @@ function renderAlerts() {
     list.innerHTML = alerts.length===0?'<div class="no-alerts">✅ No alerts — all zones nominal</div>':
         alerts.map(a=>`<div class="alert-item"><span class="alert-icon">${a.icon}</span><div><div class="alert-text">${a.text}</div><div class="alert-time">${a.time}</div></div></div>`).join('');
 }
-
 // ─── DRAG SELECTION ──────────────────────────────────────────
 function startDrag(i){isDragging=true;dragStart=i;selectedCells.clear();selectedCells.add(i);renderGrid();updateEditor();}
 function extendDrag(i){if(!isDragging) return; const cols=3,r1=Math.floor(dragStart/cols),c1=dragStart%cols,r2=Math.floor(i/cols),c2=i%cols,minR=Math.min(r1,r2),maxR=Math.max(r1,r2),minC=Math.min(c1,c2),maxC=Math.max(c1,c2);selectedCells.clear();for(let r=minR;r<=maxR;r++) for(let c=minC;c<=maxC;c++) selectedCells.add(r*cols+c);renderGrid();updateEditor();}
