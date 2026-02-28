@@ -75,33 +75,63 @@ function recalcStatus(i) {
 // ─── GRID RENDER ────────────────────────────────────────────
 function renderGrid() {
     const grids = document.querySelectorAll('.field-grid');
+    
     grids.forEach(grid => {
         grid.innerHTML = '';
+        const isConfigTab = grid.closest('#tab-config') !== null;
+
         cells.forEach((cell, i) => {
             const el = document.createElement('div');
-            el.className = `field-cell status-${cell.status}`;
+            
+            // Apply dynamic colors ONLY to the Monitor tab. 
+            // Keep the Config tab visually neutral.
+            if (isConfigTab) {
+                el.className = 'field-cell status-unset'; 
+            } else {
+                el.className = `field-cell status-${cell.status}`;
+            }
+            
             el.dataset.index = i;
-            if (selectedCells.has(i)) el.classList.add('is-selected');
+            
+            // Only highlight selected cells in the config tab
+            if (isConfigTab && selectedCells.has(i)) el.classList.add('is-selected');
+            
             const cropInfo = cell.crop ? CROPS[cell.crop] : null;
-            el.innerHTML = `
-                <div class="cell-status-dot"></div>
-                <div class="cell-label">
-                    <div class="cell-crop">${cropInfo ? cropInfo.emoji + ' ' + cropInfo.label : cell.name}</div>
-                    <div class="cell-moisture">${cell.moisture !== null ? '💧 ' + cell.moisture + '%' : '— unset'}</div>
-                </div>
-            `;
-            // Listeners
-            el.addEventListener('mousedown', e => { e.preventDefault(); startDrag(i); });
-            el.addEventListener('mouseenter', () => { if(isDragging) extendDrag(i); });
-            el.addEventListener('mouseup', endDrag);
-            el.addEventListener('touchstart', e => { e.preventDefault(); startDrag(i); }, {passive: false});
-            el.addEventListener('touchmove', e => {
-                e.preventDefault();
-                const t = e.touches[0];
-                const target = document.elementFromPoint(t.clientX, t.clientY);
-                if(target?.dataset?.index) extendDrag(parseInt(target.dataset.index));
-            }, {passive: false});
-            el.addEventListener('touchend', endDrag);
+            const cropText = cropInfo ? cropInfo.emoji + ' ' + cropInfo.label : cell.name;
+            
+            if (isConfigTab) {
+                // Configuration Tab: Clean view, no live data or status dots
+                el.innerHTML = `
+                    <div class="cell-label">
+                        <div class="cell-crop">${cropText}</div>
+                        <div class="cell-moisture" style="opacity: 0.5;">Select to edit</div>
+                    </div>
+                `;
+                
+                // Attach drag/selection listeners
+                el.addEventListener('mousedown', e => { e.preventDefault(); startDrag(i); });
+                el.addEventListener('mouseenter', () => { if(isDragging) extendDrag(i); });
+                el.addEventListener('mouseup', endDrag);
+                el.addEventListener('touchstart', e => { e.preventDefault(); startDrag(i); }, {passive: false});
+                el.addEventListener('touchmove', e => {
+                    e.preventDefault();
+                    const t = e.touches[0];
+                    const target = document.elementFromPoint(t.clientX, t.clientY);
+                    const cellEl = target?.closest('.field-cell');
+                    if(cellEl?.dataset?.index) extendDrag(parseInt(cellEl.dataset.index));
+                }, {passive: false});
+                el.addEventListener('touchend', endDrag);
+
+            } else {
+                // Field Monitor Tab: Live data, no selection listeners
+                el.innerHTML = `
+                    <div class="cell-status-dot"></div>
+                    <div class="cell-label">
+                        <div class="cell-crop">${cropText}</div>
+                        <div class="cell-moisture">${cell.moisture !== null ? '💧 ' + cell.moisture + '%' : '— unset'}</div>
+                    </div>
+                `;
+            }
             
             grid.appendChild(el);
         });

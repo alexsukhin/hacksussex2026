@@ -5,7 +5,7 @@ import uuid
 
 # Configuration
 BACKEND_URL = "http://127.0.0.1:8000/readings/"
-SLEEP_INTERVAL = 5 # Send data every 5 seconds
+SLEEP_INTERVAL = 10 # Send data every 10 seconds
 
 # Generate 4 static UUIDs to represent our 4 physical zones/sensors
 # We keep these static so the frontend can group data by zone

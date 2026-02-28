@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RainMaker — Field Monitor</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;1,9..144,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -31,21 +31,23 @@
 </nav>
 
 <main>
-    <div style="margin-bottom:1.5rem;display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
-        <div>
-            <div class="section-title">Field Overview</div>
-            <div class="hint" style="margin-top:0.2rem;">Drag to select zones → assign crop type</div>
-        </div>
-        <div class="legend">
-            <div class="legend-item"><div class="legend-swatch" style="background:#b8d4a0"></div>Optimal</div>
-            <div class="legend-item"><div class="legend-swatch" style="background:#e8c49a"></div>Dry</div>
-            <div class="legend-item"><div class="legend-swatch" style="background:#a0c0d8"></div>Oversaturated</div>
-            <div class="legend-item"><div class="legend-swatch" style="background:#d8cfb8"></div>Unset</div>
-        </div>
-    </div>
 
     <div id="tab-field" class="tab-content active">
-        <div id="rain-warning" style="text-align:center;color:#1E90FF;font-weight:bold;margin-bottom:1rem;"></div>
+        
+        <div class="tab-header">
+            <div>
+                <div class="section-title">Field Monitor</div>
+                <div class="hint">Live sensor readings and field conditions</div>
+            </div>
+            <div class="legend">
+                <div class="legend-item"><div class="legend-swatch" style="background:#b8d4a0"></div>Optimal</div>
+                <div class="legend-item"><div class="legend-swatch" style="background:#e8c49a"></div>Dry</div>
+                <div class="legend-item"><div class="legend-swatch" style="background:#a0c0d8"></div>Oversaturated</div>
+                <div class="legend-item"><div class="legend-swatch" style="background:#e6dfd1"></div>Unset</div>
+            </div>
+        </div>
+
+        <div id="rain-warning" style="text-align:center;color:#1E90FF;font-weight:600;margin-bottom:1.5rem;"></div>
 
         <div id="field-and-stats">
             <div class="field-wrapper">
@@ -64,6 +66,14 @@
     </div>
 
     <div id="tab-config" class="tab-content">
+        
+        <div class="tab-header">
+            <div>
+                <div class="section-title">Field Configuration</div>
+                <div class="hint">Update farm location or drag across the grid to assign crops to zones.</div>
+            </div>
+        </div>
+
         <div class="config-layout">
             <div class="field-wrapper">
                 <div class="field-grid"></div>
