@@ -16,5 +16,4 @@ class Reading(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     plot_id = Column(UUID(as_uuid=True), ForeignKey("plots.id"))
     moisture = Column(Integer, nullable=False)
-    light = Column(Integer, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
