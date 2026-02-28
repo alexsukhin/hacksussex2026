@@ -1,7 +1,5 @@
-def evaluate_irrigation(moisture, ideal_min, ideal_max):
+def evaluate_irrigation(moisture, ideal_min):
     if moisture < ideal_min:
         return "dry"
-    elif moisture > ideal_max:
-        return "oversaturated"
     else:
         return "optimal"
