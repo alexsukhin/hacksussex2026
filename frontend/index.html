@@ -41,9 +41,16 @@
 
     <div id="rain-warning" style="text-align:center;color:#1E90FF;font-weight:bold;margin-bottom:1rem;"></div>
 
-    <!-- Field grid (populated by app.js) -->
-    <div id="field-wrapper">
-        <div id="field-grid"></div>
+    <!-- Field grid + Zone summary side by side -->
+    <div id="field-and-stats">
+        <div id="field-wrapper">
+            <div id="field-grid"></div>
+        </div>
+
+        <div class="card" id="stats-panel">
+            <div class="card-title">📊 Zone Summary</div>
+            <div id="zone-table">Loading...</div>
+        </div>
     </div>
 
     <div class="panel-row">
@@ -72,9 +79,6 @@
 
             <div class="crop-requirements" id="crop-req">Select a crop to see moisture &amp; light requirements.</div>
 
-            <label>Zone Name / Address <span style="color:var(--muted)">(optional)</span></label>
-            <input type="text" id="zone-name-input" placeholder="e.g. North Field, Plot A3…">
-
             <div>
                 <button class="btn btn-primary"   onclick="applyToSelected()">Apply to Selected</button>
                 <button class="btn btn-secondary" onclick="clearSelection()">Clear Selection</button>
@@ -88,11 +92,7 @@
         </div>
     </div>
 
-    <!-- Zone summary -->
-    <div class="card" id="stats-panel">
-        <div class="card-title">📊 Zone Summary</div>
-        <div id="zone-table">Loading...</div>
-    </div>
+
 </main>
 
 <div class="toast" id="toast"></div>

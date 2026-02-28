@@ -61,7 +61,8 @@ header {
     display: flex;
     gap: 0;
     overflow-x: auto;
-    background: var(--soil);
+    background: var(--card);
+    border-bottom: 1.5px solid var(--border);
     padding: 0;
     scrollbar-width: thin;
 }
@@ -70,15 +71,15 @@ header {
     padding: 0.5rem 1rem;
     text-align: center;
     font-size: 0.65rem;
-    color: var(--straw);
-    border-right: 1px solid rgba(255,255,255,0.08);
+    color: var(--muted);
+    border-right: 1px solid var(--border);
     white-space: nowrap;
     transition: background 0.2s;
 }
-.hour-pill:hover { background: rgba(255,255,255,0.06); }
-.hour-pill .temp { font-size: 0.85rem; font-weight: 500; color: #fff; display: block; }
+.hour-pill:hover { background: rgba(0,0,0,0.03); }
+.hour-pill .temp { font-size: 0.85rem; font-weight: 500; color: var(--text); display: block; }
 .hour-pill .rain { color: var(--sky); }
-.hour-pill.current { background: rgba(255,255,255,0.12); border-top: 2px solid var(--leaf-light); }
+.hour-pill.current { background: rgba(61,122,79,0.07); border-top: 2px solid var(--leaf); }
 
 /* ─── LAYOUT ─────────────────────────────────────────────── */
 main {
@@ -102,7 +103,9 @@ main {
 /* ─── FIELD GRID ─────────────────────────────────────────── */
 #field-wrapper {
     position: relative;
-    margin-bottom: 2.5rem;
+    margin-bottom: 0;
+    width: 490px;
+    flex-shrink: 0;
 }
 
 #field-grid {
@@ -114,6 +117,7 @@ main {
     border-radius: 6px;
     overflow: hidden;
     user-select: none;
+    width: 100%;
 }
 
 .field-cell {
@@ -178,6 +182,18 @@ main {
 @keyframes pulse-red {
     0%, 100% { box-shadow: 0 0 0 0 rgba(231,76,60,0.5); }
     50%       { box-shadow: 0 0 0 4px rgba(231,76,60,0); }
+}
+
+/* ─── FIELD + STATS SIDE BY SIDE ─────────────────────────── */
+#field-and-stats {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 1.5rem;
+    align-items: start;
+    margin-bottom: 2rem;
+}
+@media (max-width: 800px) {
+    #field-and-stats { grid-template-columns: 1fr; }
 }
 
 /* ─── PANELS ─────────────────────────────────────────────── */

@@ -231,18 +231,15 @@ function updateCropReq() {
 
 function applyToSelected() {
     const crop = document.getElementById('crop-select').value;
-    const name = document.getElementById('zone-name-input').value.trim();
     if (!crop) { showToast('Please select a crop type first.'); return; }
 
     selectedCells.forEach(i => {
-        cells[i].crop         = crop;
-        cells[i].address      = name || cells[i].address;
+        cells[i].crop          = crop;
         cells[i].idealMoisture = CROPS[crop].idealMoisture;
         cells[i].idealLight    = CROPS[crop].idealLight;
         if (cells[i].moisture !== null) recalcStatus(i);
     });
 
-    document.getElementById('zone-name-input').value = '';
     renderGrid();
     renderStats();
     renderAlerts();
