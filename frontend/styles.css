@@ -383,3 +383,80 @@ select:focus, input:focus { border-color: var(--leaf); }
     pointer-events: none;
 }
 .toast.show { transform: translateY(0); opacity: 1; }
+
+/* ─── TABS ───────────────────────────────────────────────── */
+.tab-nav {
+    display: flex;
+    gap: 1.5rem;
+    padding: 0 2rem;
+    background: var(--card);
+    border-bottom: 1.5px solid var(--border);
+}
+
+.tab-btn {
+    background: none;
+    border: none;
+    padding: 1rem 0;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s;
+}
+
+.tab-btn.active {
+    color: var(--leaf);
+    border-bottom-color: var(--leaf);
+}
+
+.tab-btn:hover:not(.active) {
+    color: var(--text);
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── LAYOUT TWEAKS FOR TABS ─────────────────────────────── */
+.config-layout {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 1.5rem;
+    align-items: start;
+}
+
+@media (max-width: 800px) {
+    .config-layout { grid-template-columns: 1fr; }
+}
+
+/* Shifted from #field-wrapper and #field-grid to classes */
+.field-wrapper {
+    position: relative;
+    margin-bottom: 0;
+    width: 490px;
+    flex-shrink: 0;
+}
+
+.field-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 3px;
+    background: var(--clay);
+    border: 3px solid var(--clay);
+    border-radius: 6px;
+    overflow: hidden;
+    user-select: none;
+    width: 100%;
+}

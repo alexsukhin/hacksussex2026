@@ -25,7 +25,10 @@
     <div class="hour-pill"><span class="temp">—</span>Loading...</div>
 </div>
 
-<input id="location-input" type="text" placeholder="Type city and press Enter" style="margin-left:0.5rem; padding:0.2rem;" />
+<nav class="tab-nav">
+    <button class="tab-btn active" data-target="tab-field">🌾 Field Monitor</button>
+    <button class="tab-btn" data-target="tab-config">⚙️ Configuration</button>
+</nav>
 
 <main>
     <div style="margin-bottom:1.5rem;display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
@@ -41,59 +44,70 @@
         </div>
     </div>
 
-    <div id="rain-warning" style="text-align:center;color:#1E90FF;font-weight:bold;margin-bottom:1rem;"></div>
+    <div id="tab-field" class="tab-content active">
+        <div id="rain-warning" style="text-align:center;color:#1E90FF;font-weight:bold;margin-bottom:1rem;"></div>
 
-    <!-- Field grid + Zone summary side by side -->
-    <div id="field-and-stats">
-        <div id="field-wrapper">
-            <div id="field-grid"></div>
-        </div>
-
-        <div class="card" id="stats-panel">
-            <div class="card-title">📊 Zone Summary</div>
-            <div id="zone-table">Loading...</div>
-        </div>
-    </div>
-
-    <div class="panel-row">
-        <!-- Zone editor -->
-        <div class="card" id="crop-editor">
-            <div class="card-title">
-                ✏️ Zone Editor
-                <span class="selected-count" id="sel-count"></span>
+        <div id="field-and-stats">
+            <div class="field-wrapper">
+                <div class="field-grid"></div>
             </div>
-            <div class="editor-prompt" id="editor-prompt">Select one or more zones on the map above to configure them.</div>
-
-            <label>Crop Type</label>
-            <select id="crop-select">
-                <option value="">— Select crop —</option>
-                <option value="wheat">Wheat</option>
-                <option value="barley">Barley</option>
-                <option value="oats">Oats</option>
-                <option value="potatoes">Potatoes</option>
-                <option value="rapeseed">Rapeseed (Canola)</option>
-                <option value="sugar_beet">Sugar Beet</option>
-                <option value="field_beans">Field Beans</option>
-                <option value="peas">Peas</option>
-                <option value="maize">Maize (Silage)</option>
-                <option value="other">Other</option>
-            </select>
-
-            <div class="crop-requirements" id="crop-req">Select a crop to see moisture &amp; light requirements.</div>
-
-            <div>
-                <button class="btn btn-primary"   onclick="applyToSelected()">Apply to Selected</button>
-                <button class="btn btn-secondary" onclick="clearSelection()">Clear Selection</button>
+            <div class="card" id="stats-panel">
+                <div class="card-title">📊 Zone Summary</div>
+                <div id="zone-table">Loading...</div>
             </div>
         </div>
 
-        <!-- Alerts -->
         <div class="card" id="alerts-panel">
             <div class="card-title">⚠️ Active Alerts</div>
             <div id="alerts-list"><div class="no-alerts">No alerts — all zones nominal</div></div>
         </div>
     </div>
 
+    <div id="tab-config" class="tab-content">
+        <div class="config-layout">
+            <div class="field-wrapper">
+                <div class="field-grid"></div>
+            </div>
+
+            <div class="config-sidebar">
+                <div class="card" style="margin-bottom: 1.5rem;">
+                    <div class="card-title">📍 Farm Location</div>
+                    <label>Update location for weather tracking</label>
+                    <input id="location-input" type="text" placeholder="Type city and press Enter" />
+                </div>
+
+                <div class="card" id="crop-editor">
+                    <div class="card-title">
+                        ✏️ Zone Editor
+                        <span class="selected-count" id="sel-count"></span>
+                    </div>
+                    <div class="editor-prompt" id="editor-prompt">Select one or more zones on the map to configure them.</div>
+
+                    <label>Crop Type</label>
+                    <select id="crop-select">
+                        <option value="">— Select crop —</option>
+                        <option value="wheat">Wheat</option>
+                        <option value="barley">Barley</option>
+                        <option value="oats">Oats</option>
+                        <option value="potatoes">Potatoes</option>
+                        <option value="rapeseed">Rapeseed (Canola)</option>
+                        <option value="sugar_beet">Sugar Beet</option>
+                        <option value="field_beans">Field Beans</option>
+                        <option value="peas">Peas</option>
+                        <option value="maize">Maize (Silage)</option>
+                        <option value="other">Other</option>
+                    </select>
+
+                    <div class="crop-requirements" id="crop-req">Select a crop to see moisture &amp; light requirements.</div>
+
+                    <div>
+                        <button class="btn btn-primary" onclick="applyToSelected()">Apply</button>
+                        <button class="btn btn-secondary" onclick="clearSelection()">Clear</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
 </main>
 

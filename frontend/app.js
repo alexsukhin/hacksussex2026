@@ -67,34 +67,39 @@ function recalcStatus(i) {
 }
 
 // ─── GRID RENDER ────────────────────────────────────────────
+// ─── GRID RENDER ────────────────────────────────────────────
 function renderGrid() {
-    const grid = document.getElementById('field-grid');
-    grid.innerHTML = '';
-    cells.forEach((cell,i) => {
-        const el = document.createElement('div');
-        el.className = `field-cell status-${cell.status}`;
-        el.dataset.index = i;
-        if (selectedCells.has(i)) el.classList.add('is-selected');
-        const cropInfo = cell.crop ? CROPS[cell.crop] : null;
-        el.innerHTML = `
-            <div class="cell-status-dot"></div>
-            <div class="cell-label">
-                <div class="cell-crop">${cropInfo ? cropInfo.emoji + ' ' + cropInfo.label : cell.name}</div>
-                <div class="cell-moisture">${cell.moisture !== null ? '💧 ' + cell.moisture + '%' : '— unset'}</div>
-            </div>
-        `;
-        el.addEventListener('mousedown', e=>{e.preventDefault(); startDrag(i)});
-        el.addEventListener('mouseenter', ()=>{ if(isDragging) extendDrag(i) });
-        el.addEventListener('mouseup', endDrag);
-        el.addEventListener('touchstart', e=>{ e.preventDefault(); startDrag(i) }, {passive:false});
-        el.addEventListener('touchmove', e=>{
-            e.preventDefault();
-            const t=e.touches[0];
-            const target=document.elementFromPoint(t.clientX,t.clientY);
-            if(target?.dataset?.index) extendDrag(parseInt(target.dataset.index));
-        }, {passive:false});
-        el.addEventListener('touchend', endDrag);
-        grid.appendChild(el);
+    const grids = document.querySelectorAll('.field-grid');
+    grids.forEach(grid => {
+        grid.innerHTML = '';
+        cells.forEach((cell, i) => {
+            const el = document.createElement('div');
+            el.className = `field-cell status-${cell.status}`;
+            el.dataset.index = i;
+            if (selectedCells.has(i)) el.classList.add('is-selected');
+            const cropInfo = cell.crop ? CROPS[cell.crop] : null;
+            el.innerHTML = `
+                <div class="cell-status-dot"></div>
+                <div class="cell-label">
+                    <div class="cell-crop">${cropInfo ? cropInfo.emoji + ' ' + cropInfo.label : cell.name}</div>
+                    <div class="cell-moisture">${cell.moisture !== null ? '💧 ' + cell.moisture + '%' : '— unset'}</div>
+                </div>
+            `;
+            // Listeners
+            el.addEventListener('mousedown', e => { e.preventDefault(); startDrag(i); });
+            el.addEventListener('mouseenter', () => { if(isDragging) extendDrag(i); });
+            el.addEventListener('mouseup', endDrag);
+            el.addEventListener('touchstart', e => { e.preventDefault(); startDrag(i); }, {passive: false});
+            el.addEventListener('touchmove', e => {
+                e.preventDefault();
+                const t = e.touches[0];
+                const target = document.elementFromPoint(t.clientX, t.clientY);
+                if(target?.dataset?.index) extendDrag(parseInt(target.dataset.index));
+            }, {passive: false});
+            el.addEventListener('touchend', endDrag);
+            
+            grid.appendChild(el);
+        });
     });
 }
 
@@ -251,6 +256,20 @@ document.getElementById('location-input').addEventListener('keypress', async e =
         showToast('Failed to fetch location');
     }
 });
+
+// ─── TAB NAVIGATION ─────────────────────────────────────────
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        // Remove active class from all buttons and tabs
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        // Add active class to clicked button and target tab
+        e.target.classList.add('active');
+        document.getElementById(e.target.dataset.target).classList.add('active');
+    });
+});
+
 // ─── UTILITIES ───────────────────────────────────────────────
 function updateClock(){document.getElementById('clock').textContent=new Date().toLocaleTimeString('en-GB');}
 function showToast(msg){const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2500);}
