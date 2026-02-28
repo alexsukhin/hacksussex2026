@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware 
-from app.routers import readings, sensors
+from app.routers import readings, sensors, weather
 
 app = FastAPI(
     title="Orchard Monitoring Backend",
@@ -17,6 +17,7 @@ app.add_middleware(
 
 app.include_router(readings.router)
 app.include_router(sensors.router)
+app.include_router(weather.router)
 
 @app.get("/")
 def root():
