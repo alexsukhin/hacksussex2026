@@ -1,18 +1,22 @@
 from pydantic import BaseModel
 from uuid import UUID
 from datetime import datetime
+from typing import Optional
 
 class ReadingCreate(BaseModel):
-    sensor_id: UUID
+    plot_id: UUID
     moisture: int
-    light: int
 
 class ReadingResponse(BaseModel):
     id: UUID
-    sensor_id: UUID
+    plot_id: UUID
     moisture: int
-    light: int
     created_at: datetime
+    
+    plot_name: Optional[str] = None
+    score: Optional[int] = None
+    status: Optional[str] = None
+    color: Optional[str] = None
 
     class Config:
         from_attributes = True
