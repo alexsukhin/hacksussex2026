@@ -101,13 +101,6 @@ hello world
 * [ ] Push notifications to frontend when thresholds are crossed
 * [ ] Add “last updated” timestamp per sensor on dashboard
 
-**Logging / Monitoring**
-
-* [ ] Add structured logging (e.g., using Python `logging` module)
-* [ ] Log all failed requests, invalid readings, and system errors
-* [ ] Monitor database connection health and retries
-* [ ] Optionally integrate with monitoring tools (Sentry, Prometheus)
-
 **Optional / Future Enhancements**
 
 * [ ] Add UV sensor data and integrate into irrigation logic
