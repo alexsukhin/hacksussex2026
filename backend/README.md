@@ -32,7 +32,6 @@ Setup
 1. Clone the repo:
 ```
 git clone https://github.com/alexsukhin/hacksussex2026
-cd orchard-project/backend
 ```
 
 2. Create a virtual environment:
