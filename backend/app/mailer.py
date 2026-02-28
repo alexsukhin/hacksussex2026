@@ -37,3 +37,23 @@ class EmailNotifier:
             if self.username and self.password:
                 server.login(self.username, self.password)
             server.send_message(msg)
+
+
+watered = True #Dummy Condition
+
+notifier = EmailNotifier(
+    smtp_host="smtp.gmail.com",      
+    smtp_port=587,
+    username="rainmakeremailnotifier@gmail.com",  
+    password="ielp ubim yidw iqif",   
+    use_tls=True,
+)
+
+if watered:
+    notifier.send(
+        to_email="lewiscorry12@gmail.com",
+        subject="Crops watered",
+        body="Crops have been watered", #Later include how much water and which area of farm
+    
+    )
+    print("email sent")
