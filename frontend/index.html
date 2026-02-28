@@ -16,6 +16,7 @@
             text-align: center;
             margin-bottom: 2rem;
         }
+
         /* CSS Grid representing your zones */
         #dashboard-grid {
             display: grid;
@@ -49,6 +50,27 @@
             margin: 0;
             color: #555;
         }
+
+        #hourly-weather {
+            display: flex;
+            overflow-x: auto;
+            gap: 1rem;
+            padding: 1rem 0;
+            margin-bottom: 2rem;
+        }
+        .hour-card {
+            min-width: 80px;
+            background: #fff;
+            border-radius: 10px;
+            padding: 0.5rem;
+            text-align: center;
+            box-shadow: 0 3px 5px rgba(0,0,0,0.1);
+            flex-shrink: 0;
+        }
+        .hour-card strong {
+            display: block;
+            margin-bottom: 0.3rem;
+        }
     </style>
 </head>
 <body>
@@ -56,8 +78,8 @@
     <h1>🌱 Orchard Monitoring Dashboard</h1>
 
     <!-- Weather info at the top -->
-    <div id="weather-info" style="text-align: center; margin-bottom: 2rem; font-size: 1.2rem;">
-        Loading weather...
+    <div id="hourly-weather">
+        <p>Loading hourly weather...</p>
     </div>
 
     <div id="dashboard-grid">
@@ -66,23 +88,35 @@
 
     <script>
         const API_URL = 'http://127.0.0.1:8000/readings/';
-        const WEATHER_URL = 'http://127.0.0.1:8000/weather/';
+        const WEATHER_URL = 'http://127.0.0.1:8000/weather/hourly';
         const gridContainer = document.getElementById('dashboard-grid');
-        const weatherContainer = document.getElementById('weather-info');
+        const hourlyContainer = document.getElementById('hourly-weather');
 
         async function fetchWeather() {
             try {
                 const resp = await fetch(WEATHER_URL);
                 if (!resp.ok) throw new Error('Network response was not ok');
                 const data = await resp.json();
-                weatherContainer.innerText =
-                    `🌤 Today: ${data.weather}, Rain: ${data.rain_mm}mm, Temp: ${data.temp_day}°C | 🌧 Tomorrow Rain: ${data.tomorrow_rain_mm}mm`;
+
+                hourlyContainer.innerHTML = '';
+                data.hourly.forEach(hour => {
+                    const card = document.createElement('div');
+                    card.className = 'hour-card';
+                    card.innerHTML = `
+                        <strong>${new Date(hour.time).getHours()}:00</strong>
+                        ${hour.temp_c.toFixed(1)}°C
+                        <br>
+                        🌧 ${hour.chance_of_rain}%
+                    `;
+                    hourlyContainer.appendChild(card);
+                });
+
             } catch(e) {
                 console.error(e);
-                weatherContainer.innerText = "❌ Unable to fetch weather";
+                hourlyContainer.innerHTML = "❌ Unable to fetch hourly weather";
             }
         }
-        
+
         async function fetchReadings() {
             try {
                 const response = await fetch(API_URL);
