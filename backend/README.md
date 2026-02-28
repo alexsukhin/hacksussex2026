@@ -86,6 +86,7 @@ Next Steps
 * [ ] Validate readings before saving (check ranges, types)
 * [ ] Implement retry mechanism for hardware data if backend fails
 * [ ] Simulate sensor POST requests for testing before hardware is connected
+hello world
 
 **Business Logic / Services**
 
