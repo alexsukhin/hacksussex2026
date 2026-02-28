@@ -152,6 +152,7 @@
                 card.style.backgroundColor = bgColor;
                 card.style.border = `4px solid ${zone.color}`;
 
+                // Populate the card HTML
                 card.innerHTML = `
                     <h2>${zone.plot_name}</h2>
                     <div class="moisture-value" style="color: ${zone.color};">
@@ -162,6 +163,9 @@
                     </p>
                     <p class="score-text">
                         Watering Score: ${zone.score}
+                    </p>
+                    <p style="margin-top: 1rem; color: #888; font-size: 0.9rem;">
+                        ☀️ Light Level: ${zone.light} lux
                     </p>
                 `;
                 

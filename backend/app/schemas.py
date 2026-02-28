@@ -6,11 +6,13 @@ from typing import Optional
 class ReadingCreate(BaseModel):
     plot_id: UUID
     moisture: int
+    light: int
 
 class ReadingResponse(BaseModel):
     id: UUID
     plot_id: UUID
     moisture: int
+    light: int
     created_at: datetime
     
     plot_name: Optional[str] = None

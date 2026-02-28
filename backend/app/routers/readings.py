@@ -34,7 +34,6 @@ def read_readings(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
         plot = db.query(models.Plot).filter(models.Plot.id == r.plot_id).first()
         
         if plot:
-            # Run the MVP business logic!
             irrigation_data = evaluate_irrigation(r.moisture, plot.ideal_moisture)
             
             # Package it perfectly for the frontend
@@ -42,6 +41,7 @@ def read_readings(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
                 "id": r.id,
                 "plot_id": r.plot_id,
                 "moisture": r.moisture,
+                "light": r.light,
                 "created_at": r.created_at,
                 "plot_name": plot.name,
                 "score": irrigation_data["score"],
