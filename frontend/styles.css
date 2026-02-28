@@ -460,3 +460,8 @@ select:focus, input:focus { border-color: var(--leaf); }
     user-select: none;
     width: 100%;
 }
+
+/* Disable pointer cursor in the Monitor tab since it is view-only */
+#tab-field .field-cell {
+    cursor: default;
+}
