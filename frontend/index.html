@@ -3,185 +3,98 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Orchard Monitoring Dashboard</title>
-    <style>
-        body {
-            font-family: sans-serif;
-            background-color: #f4f4f9;
-            margin: 0;
-            padding: 2rem;
-            color: #333;
-        }
-        h1 {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-
-        /* CSS Grid representing your zones */
-        #dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 2rem;
-            max-width: 1000px;
-            margin: 0 auto;
-        }
-        .zone-card {
-            background-color: #fff;
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            text-align: center;
-            transition: transform 0.2s;
-        }
-        .zone-card h2 {
-            margin-top: 0;
-            font-size: 1.5rem;
-        }
-        .moisture-value {
-            font-size: 3rem;
-            font-weight: bold;
-            margin: 1rem 0;
-        }
-        .status-text {
-            font-size: 1.2rem;
-            margin: 0 0 0.5rem 0;
-        }
-        .score-text {
-            margin: 0;
-            color: #555;
-        }
-
-        #hourly-weather {
-            display: flex;
-            overflow-x: auto;
-            gap: 1rem;
-            padding: 1rem 0;
-            margin-bottom: 2rem;
-        }
-        .hour-card {
-            min-width: 80px;
-            background: #fff;
-            border-radius: 10px;
-            padding: 0.5rem;
-            text-align: center;
-            box-shadow: 0 3px 5px rgba(0,0,0,0.1);
-            flex-shrink: 0;
-        }
-        .hour-card strong {
-            display: block;
-            margin-bottom: 0.3rem;
-        }
-    </style>
+    <title>RainMaker — Field Monitor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;1,9..144,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-    <h1>🌱 Orchard Monitoring Dashboard</h1>
+<header>
+    <div class="logo">Rain<span>Maker</span></div>
+    <div style="display:flex;align-items:center;gap:1rem;">
+        <span class="live-badge"><span class="live-dot"></span>LIVE</span>
+        <div class="header-meta">
+            <div id="clock">--:--:--</div>
+            <div id="location-label">Loading weather...</div>
+        </div>
+    </div>
+</header>
 
-    <!-- Weather info at the top -->
-    <div id="hourly-weather">
-        <p>Loading hourly weather...</p>
+<div id="weather-strip">
+    <div class="hour-pill"><span class="temp">—</span>Loading...</div>
+</div>
+
+<main>
+    <div style="margin-bottom:1.5rem;display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
+        <div>
+            <div class="section-title">Field Overview</div>
+            <div class="hint" style="margin-top:0.2rem;">Drag to select zones → assign crop type</div>
+        </div>
+        <div class="legend">
+            <div class="legend-item"><div class="legend-swatch" style="background:#b8d4a0"></div>Optimal</div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#e8c49a"></div>Dry</div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#a0c0d8"></div>Oversaturated</div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#d8cfb8"></div>Unset</div>
+        </div>
     </div>
 
-    <div id="dashboard-grid">
-        <p style="text-align: center; width: 100%;">Loading sensor data...</p>
+    <!-- Field grid (populated by app.js) -->
+    <div id="field-wrapper">
+        <div id="field-grid"></div>
     </div>
 
-    <script>
-        const API_URL = 'http://127.0.0.1:8000/readings/';
-        const WEATHER_URL = 'http://127.0.0.1:8000/weather/hourly';
-        const gridContainer = document.getElementById('dashboard-grid');
-        const hourlyContainer = document.getElementById('hourly-weather');
+    <div class="panel-row">
+        <!-- Zone editor -->
+        <div class="card" id="crop-editor">
+            <div class="card-title">
+                ✏️ Zone Editor
+                <span class="selected-count" id="sel-count"></span>
+            </div>
+            <div class="editor-prompt" id="editor-prompt">Select one or more zones on the map above to configure them.</div>
 
-        async function fetchWeather() {
-            try {
-                const resp = await fetch(WEATHER_URL);
-                if (!resp.ok) throw new Error('Network response was not ok');
-                const data = await resp.json();
+            <label>Crop Type</label>
+            <select id="crop-select">
+                <option value="">— Select crop —</option>
+                <option value="wheat">Wheat</option>
+                <option value="barley">Barley</option>
+                <option value="oats">Oats</option>
+                <option value="potatoes">Potatoes</option>
+                <option value="rapeseed">Rapeseed (Canola)</option>
+                <option value="sugar_beet">Sugar Beet</option>
+                <option value="field_beans">Field Beans</option>
+                <option value="peas">Peas</option>
+                <option value="maize">Maize (Silage)</option>
+                <option value="other">Other</option>
+            </select>
 
-                hourlyContainer.innerHTML = '';
-                data.hourly.forEach(hour => {
-                    const card = document.createElement('div');
-                    card.className = 'hour-card';
-                    card.innerHTML = `
-                        <strong>${new Date(hour.time).getHours()}:00</strong>
-                        ${hour.temp_c.toFixed(1)}°C
-                        <br>
-                        🌧 ${hour.chance_of_rain}%
-                    `;
-                    hourlyContainer.appendChild(card);
-                });
+            <div class="crop-requirements" id="crop-req">Select a crop to see moisture &amp; light requirements.</div>
 
-            } catch(e) {
-                console.error(e);
-                hourlyContainer.innerHTML = "❌ Unable to fetch hourly weather";
-            }
-        }
+            <label>Zone Name / Address <span style="color:var(--muted)">(optional)</span></label>
+            <input type="text" id="zone-name-input" placeholder="e.g. North Field, Plot A3…">
 
-        async function fetchReadings() {
-            try {
-                const response = await fetch(API_URL);
-                if (!response.ok) throw new Error('Network response was not ok');
-                
-                const data = await response.json();
-                
-                const latestZones = {};
-                data.forEach(reading => {
-                    if (!latestZones[reading.plot_name]) {
-                        latestZones[reading.plot_name] = reading;
-                    }
-                });
+            <div>
+                <button class="btn btn-primary"   onclick="applyToSelected()">Apply to Selected</button>
+                <button class="btn btn-secondary" onclick="clearSelection()">Clear Selection</button>
+            </div>
+        </div>
 
-                renderGrid(latestZones);
-            } catch (error) {
-                console.error("Error fetching data:", error);
-                gridContainer.innerHTML = `<p style="text-align: center; color: red;">Error connecting to backend. Is FastAPI running?</p>`;
-            }
-        }
+        <!-- Alerts -->
+        <div class="card" id="alerts-panel">
+            <div class="card-title">⚠️ Active Alerts</div>
+            <div id="alerts-list"><div class="no-alerts">No alerts — all zones nominal</div></div>
+        </div>
+    </div>
 
-        function renderGrid(zonesMap) {
-            gridContainer.innerHTML = '';
-            
-            Object.values(zonesMap).forEach(zone => {
-                let bgColor = '#fff';
-                if (zone.color === 'green') bgColor = '#e6ffed';
-                if (zone.color === 'red') bgColor = '#ffeef0';
-                if (zone.color === 'blue') bgColor = '#e6f0ff';
+    <!-- Zone summary -->
+    <div class="card" id="stats-panel">
+        <div class="card-title">📊 Zone Summary</div>
+        <div id="zone-table">Loading...</div>
+    </div>
+</main>
 
-                const card = document.createElement('div');
-                card.className = 'zone-card';
-                card.style.backgroundColor = bgColor;
-                card.style.border = `4px solid ${zone.color}`;
+<div class="toast" id="toast"></div>
 
-                // Populate the card HTML
-                card.innerHTML = `
-                    <h2>${zone.plot_name}</h2>
-                    <div class="moisture-value" style="color: ${zone.color};">
-                        ${zone.moisture}%
-                    </div>
-                    <p class="status-text">
-                        Status: <strong>${zone.status}</strong>
-                    </p>
-                    <p class="score-text">
-                        Watering Score: ${zone.score}
-                    </p>
-                    <p style="margin-top: 1rem; color: #888; font-size: 0.9rem;">
-                        ☀️ Light Level: ${zone.light} lux
-                    </p>
-                `;
-                
-                gridContainer.appendChild(card);
-            });
-        }
-
-        // Fetch immediately on load
-        fetchWeather();
-        fetchReadings();
-
-        // Poll every 5 seconds for live updates
-        setInterval(() => {
-            fetchReadings();
-            fetchWeather();
-        }, 5000);
-    </script>
+<script src="app.js"></script>
 </body>
 </html>
