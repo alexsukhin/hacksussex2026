@@ -4,8 +4,8 @@ from app.mailer import EmailNotifier  # if you keep your mailer class in mailer.
 notifier = EmailNotifier(
     smtp_host="smtp.gmail.com",
     smtp_port=587,
-    username="rainmakeremailnotifier@gmail.com",
-    password="ielpubimyidwiqif",
+    username="greenfieldemailnotifier@gmail.com",
+    password="byycpptmgzexpyxb",
     use_tls=True,
 )
 
