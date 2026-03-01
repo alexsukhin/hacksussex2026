@@ -1,7 +1,8 @@
 // ─── CONFIG ──────────────────────────────────────────────────
-const API_URL     = 'http://127.0.0.1:8000/readings/';
-const WEATHER_URL = 'http://127.0.0.1:8000/weather/hourly';
+const API_URL              = 'http://127.0.0.1:8000/readings/';
+const WEATHER_URL          = 'http://127.0.0.1:8000/weather/hourly';
 const BACKEND_WEATHER_BASE = 'http://127.0.0.1:8000/weather';
+const STATS_URL            = 'http://127.0.0.1:8000/stats/summary';
 
 const CROPS = {
     wheat:       { label: 'Wheat',          idealMoisture: 55, idealLight: 600, emoji: '🌾' },
@@ -29,7 +30,6 @@ const CROP_REQ_TEXT = {
     other:       'Moisture: 60% | Light: 600 lux | Custom crop — defaults applied',
 };
 
-// Backend plot → grid mapping
 const ZONES_BACKEND = {
     "950b5dd5-c2e6-4aeb-b2d0-8cf5b89c033e": 0,
     "03256848-ddcf-4e66-b122-30a4a0af27ac": 1,
@@ -42,11 +42,17 @@ const ZONES_BACKEND = {
     "e6e36356-163d-4d79-ad3b-9a195cd6d5b8": 8,
 };
 
-let currentLocation = { lat: 51.5074, lon: -0.1278 }; // default London
-let rainExpected = false;
+// Reverse map: plot_id → zone name (used to label zone breakdown table)
+const PLOT_ID_TO_NAME = Object.fromEntries(
+    Object.entries(ZONES_BACKEND).map(([pid, idx]) => [pid, `Zone ${idx + 1}`])
+);
+
+let currentLocation  = { lat: 51.5074, lon: -0.1278 };
+let rainExpected     = false;
+let activePeriodDays = 7;
 
 // ─── GRID STATE ─────────────────────────────────────────────
-const GRID_SIZE = 9; // 3x3
+const GRID_SIZE = 9;
 let cells = Array.from({ length: GRID_SIZE }, (_, i) => ({
     id: i, name: `Zone ${i+1}`, crop: null, moisture: null, light: null,
     score: null, status: 'unset', color: 'unset', address: '',
@@ -54,8 +60,8 @@ let cells = Array.from({ length: GRID_SIZE }, (_, i) => ({
 }));
 
 let selectedCells = new Set();
-let isDragging = false;
-let dragStart = null;
+let isDragging    = false;
+let dragStart     = null;
 
 // ─── STATUS CALC ────────────────────────────────────────────
 function recalcStatus(i) {
@@ -66,252 +72,326 @@ function recalcStatus(i) {
     }
     const score = Math.round((cell.moisture / cell.idealMoisture) * 100);
     cell.score = score;
-    if (score < 80)        { cell.status = 'dry';           cell.color = 'red'; }
-    else if (score > 120)  { cell.status = 'oversaturated'; cell.color = 'blue'; }
-    else                   { cell.status = 'optimal';       cell.color = 'green'; }
+    if (score < 80)       { cell.status = 'dry';           cell.color = 'red'; }
+    else if (score > 120) { cell.status = 'oversaturated'; cell.color = 'blue'; }
+    else                  { cell.status = 'optimal';       cell.color = 'green'; }
 }
 
 // ─── GRID RENDER ────────────────────────────────────────────
-// ─── GRID RENDER ────────────────────────────────────────────
 function renderGrid() {
-    const grids = document.querySelectorAll('.field-grid');
-    
-    grids.forEach(grid => {
+    document.querySelectorAll('.field-grid').forEach(grid => {
         grid.innerHTML = '';
-        const isConfigTab = grid.closest('#tab-config') !== null;
-
+        const isConfig = grid.closest('#tab-config') !== null;
         cells.forEach((cell, i) => {
-            const el = document.createElement('div');
-            
-            // Apply dynamic colors ONLY to the Monitor tab. 
-            // Keep the Config tab visually neutral.
-            if (isConfigTab) {
-                el.className = 'field-cell status-unset'; 
-            } else {
-                el.className = `field-cell status-${cell.status}`;
-            }
-            
+            const el       = document.createElement('div');
+            el.className   = isConfig ? 'field-cell status-unset' : `field-cell status-${cell.status}`;
             el.dataset.index = i;
-            
-            // Only highlight selected cells in the config tab
-            if (isConfigTab && selectedCells.has(i)) el.classList.add('is-selected');
-            
+            if (isConfig && selectedCells.has(i)) el.classList.add('is-selected');
             const cropInfo = cell.crop ? CROPS[cell.crop] : null;
             const cropText = cropInfo ? cropInfo.emoji + ' ' + cropInfo.label : cell.name;
-            
-            if (isConfigTab) {
-                // Configuration Tab: Clean view, no live data or status dots
-                el.innerHTML = `
-                    <div class="cell-label">
-                        <div class="cell-crop">${cropText}</div>
-                        <div class="cell-moisture" style="opacity: 0.5;">Select to edit</div>
-                    </div>
-                `;
-                
-                // Attach drag/selection listeners
+            if (isConfig) {
+                el.innerHTML = `<div class="cell-label"><div class="cell-crop">${cropText}</div><div class="cell-moisture" style="opacity:0.5">Select to edit</div></div>`;
                 el.addEventListener('mousedown', e => { e.preventDefault(); startDrag(i); });
-                el.addEventListener('mouseenter', () => { if(isDragging) extendDrag(i); });
+                el.addEventListener('mouseenter', () => { if (isDragging) extendDrag(i); });
                 el.addEventListener('mouseup', endDrag);
                 el.addEventListener('touchstart', e => { e.preventDefault(); startDrag(i); }, {passive: false});
                 el.addEventListener('touchmove', e => {
                     e.preventDefault();
-                    const t = e.touches[0];
+                    const t      = e.touches[0];
                     const target = document.elementFromPoint(t.clientX, t.clientY);
                     const cellEl = target?.closest('.field-cell');
-                    if(cellEl?.dataset?.index) extendDrag(parseInt(cellEl.dataset.index));
+                    if (cellEl?.dataset?.index) extendDrag(parseInt(cellEl.dataset.index));
                 }, {passive: false});
                 el.addEventListener('touchend', endDrag);
-
             } else {
-                // Field Monitor Tab: Live data, no selection listeners
-                el.innerHTML = `
-                    <div class="cell-status-dot"></div>
-                    <div class="cell-label">
-                        <div class="cell-crop">${cropText}</div>
-                        <div class="cell-moisture">${cell.moisture !== null ? '💧 ' + cell.moisture + '%' : '— unset'}</div>
-                    </div>
-                `;
+                el.innerHTML = `<div class="cell-status-dot"></div><div class="cell-label"><div class="cell-crop">${cropText}</div><div class="cell-moisture">${cell.moisture !== null ? '💧 ' + cell.moisture + '%' : '— unset'}</div></div>`;
             }
-            
             grid.appendChild(el);
         });
     });
 }
 
-// ─── STATS RENDER ───────────────────────────────────────────
+// ─── ZONE SUMMARY PANEL ─────────────────────────────────────
 function renderStats() {
     const table = document.getElementById('zone-table');
-    table.innerHTML = cells.map(cell=>{
-        const dotColor  = cell.status==='optimal'?'#2ecc71':cell.status==='dry'?'#e74c3c':cell.status==='oversaturated'?'#3498db':'#aaa';
-        const barColor  = dotColor;
-        const scoreWidth = cell.score?Math.min(100,cell.score):0;
-        const cropLabel = cell.crop?`${CROPS[cell.crop]?.emoji} ${CROPS[cell.crop]?.label}`:'—';
-        return `
-            <div class="zone-row">
-                <div class="zone-dot" style="background:${dotColor}"></div>
-                <div class="zone-name">${cell.name}</div>
-                <div class="zone-crop">${cropLabel}</div>
-                <div class="score-bar-wrap"><div class="score-bar" style="width:${scoreWidth}%;background:${barColor}"></div></div>
-                <div class="zone-score" style="color:${dotColor}">${cell.score!==null?cell.score+'%':'—'}</div>
-                <div style="font-size:0.65rem;color:var(--muted);min-width:5rem;text-align:right">
-                    ${cell.moisture!==null? '💧'+cell.moisture+'% ☀️'+cell.light:'no data'}
-                </div>
-            </div>
-        `;
+    table.innerHTML = cells.map(cell => {
+        const dotColor   = cell.status==='optimal'?'#2ecc71':cell.status==='dry'?'#e74c3c':cell.status==='oversaturated'?'#3498db':'#aaa';
+        const scoreWidth = cell.score ? Math.min(100, cell.score) : 0;
+        const cropLabel  = cell.crop ? `${CROPS[cell.crop]?.emoji} ${CROPS[cell.crop]?.label}` : '—';
+        return `<div class="zone-row">
+            <div class="zone-dot" style="background:${dotColor}"></div>
+            <div class="zone-name">${cell.name}</div>
+            <div class="zone-crop">${cropLabel}</div>
+            <div class="score-bar-wrap"><div class="score-bar" style="width:${scoreWidth}%;background:${dotColor}"></div></div>
+            <div class="zone-score" style="color:${dotColor}">${cell.score!==null?cell.score+'%':'—'}</div>
+            <div style="font-size:0.65rem;color:var(--muted);min-width:5rem;text-align:right">${cell.moisture!==null?'💧'+cell.moisture+'% ☀️'+cell.light:'no data'}</div>
+        </div>`;
     }).join('');
 }
 
-// ─── ALERTS RENDER ──────────────────────────────────────────
+// ─── ALERTS ─────────────────────────────────────────────────
 function renderAlerts() {
-    const list = document.getElementById('alerts-list');
+    const list   = document.getElementById('alerts-list');
     const alerts = [];
-    cells.forEach(cell=>{
-        if(cell.status==='dry' && cell.crop){
-            if(rainExpected) {
-                alerts.push({icon:'🌧', text:`${cell.name} (${CROPS[cell.crop]?.label}) is dry — rain forecast, watering suppressed`, time:'Suppressed'});
-            } else {
-                alerts.push({icon:'🔴', text:`${cell.name} (${CROPS[cell.crop]?.label}) needs water now! Moisture: ${cell.moisture}%`, time:'Now'});
-            }
+    cells.forEach(cell => {
+        if (cell.status === 'dry' && cell.crop) {
+            alerts.push(rainExpected
+                ? {icon:'🌧', text:`${cell.name} (${CROPS[cell.crop]?.label}) is dry — rain forecast, watering suppressed`, time:'Suppressed'}
+                : {icon:'🔴', text:`${cell.name} (${CROPS[cell.crop]?.label}) needs water now! Moisture: ${cell.moisture}%`, time:'Now'});
         }
-        if(cell.status==='oversaturated'){
+        if (cell.status === 'oversaturated')
             alerts.push({icon:'🔵', text:`${cell.name} oversaturated — risk of root rot. Moisture: ${cell.moisture}%`, time:'Now'});
-        }
     });
-    list.innerHTML = alerts.length===0?'<div class="no-alerts">✅ No alerts — all zones nominal</div>':
-        alerts.map(a=>`<div class="alert-item"><span class="alert-icon">${a.icon}</span><div><div class="alert-text">${a.text}</div><div class="alert-time">${a.time}</div></div></div>`).join('');
+    list.innerHTML = alerts.length === 0
+        ? '<div class="no-alerts">✅ No alerts — all zones nominal</div>'
+        : alerts.map(a => `<div class="alert-item"><span class="alert-icon">${a.icon}</span><div><div class="alert-text">${a.text}</div><div class="alert-time">${a.time}</div></div></div>`).join('');
 }
 
-// ─── DRAG SELECTION ──────────────────────────────────────────
-function startDrag(i){isDragging=true;dragStart=i;selectedCells.clear();selectedCells.add(i);renderGrid();updateEditor();}
-function extendDrag(i){if(!isDragging) return; const cols=3,r1=Math.floor(dragStart/cols),c1=dragStart%cols,r2=Math.floor(i/cols),c2=i%cols,minR=Math.min(r1,r2),maxR=Math.max(r1,r2),minC=Math.min(c1,c2),maxC=Math.max(c1,c2);selectedCells.clear();for(let r=minR;r<=maxR;r++) for(let c=minC;c<=maxC;c++) selectedCells.add(r*cols+c);renderGrid();updateEditor();}
-function endDrag(){isDragging=false;}
+// ─── DRAG SELECTION ─────────────────────────────────────────
+function startDrag(i)  { isDragging=true; dragStart=i; selectedCells.clear(); selectedCells.add(i); renderGrid(); updateEditor(); }
+function extendDrag(i) {
+    if (!isDragging) return;
+    const cols=3, r1=Math.floor(dragStart/cols), c1=dragStart%cols,
+          r2=Math.floor(i/cols), c2=i%cols,
+          minR=Math.min(r1,r2), maxR=Math.max(r1,r2),
+          minC=Math.min(c1,c2), maxC=Math.max(c1,c2);
+    selectedCells.clear();
+    for (let r=minR; r<=maxR; r++) for (let c=minC; c<=maxC; c++) selectedCells.add(r*cols+c);
+    renderGrid(); updateEditor();
+}
+function endDrag() { isDragging = false; }
 document.addEventListener('mouseup', endDrag);
 
 // ─── CROP EDITOR ────────────────────────────────────────────
-function updateEditor(){
-    const editor=document.getElementById('crop-editor');
-    const prompt=document.getElementById('editor-prompt');
-    const selCount=document.getElementById('sel-count');
-    if(selectedCells.size===0){editor.classList.remove('active'); selCount.textContent=''; return;}
+function updateEditor() {
+    const editor   = document.getElementById('crop-editor');
+    const prompt   = document.getElementById('editor-prompt');
+    const selCount = document.getElementById('sel-count');
+    if (selectedCells.size === 0) { editor.classList.remove('active'); selCount.textContent = ''; return; }
     editor.classList.add('active');
-    selCount.textContent=`${selectedCells.size} zone${selectedCells.size>1?'s':''} selected`;
-    prompt.textContent=`Editing ${selectedCells.size} zone${selectedCells.size>1?'s':''}. Configure below and click Apply.`;
-    const unique=[...new Set([...selectedCells].map(i=>cells[i].crop).filter(Boolean))];
-    if(unique.length===1) {document.getElementById('crop-select').value=unique[0]; updateCropReq();}
+    selCount.textContent = `${selectedCells.size} zone${selectedCells.size>1?'s':''} selected`;
+    prompt.textContent   = `Editing ${selectedCells.size} zone${selectedCells.size>1?'s':''}. Configure below and click Apply.`;
+    const unique = [...new Set([...selectedCells].map(i => cells[i].crop).filter(Boolean))];
+    if (unique.length === 1) { document.getElementById('crop-select').value = unique[0]; updateCropReq(); }
 }
-function updateCropReq(){const val=document.getElementById('crop-select').value; document.getElementById('crop-req').textContent=val?CROP_REQ_TEXT[val]:'Select a crop to see moisture & light requirements.';}
-function applyToSelected(){const crop=document.getElementById('crop-select').value;if(!crop){showToast('Please select a crop type first.');return;} selectedCells.forEach(i=>{cells[i].crop=crop; cells[i].idealMoisture=CROPS[crop].idealMoisture; cells[i].idealLight=CROPS[crop].idealLight;if(cells[i].moisture!==null) recalcStatus(i);}); renderGrid(); renderStats(); renderAlerts(); showToast(`✓ Applied ${CROPS[crop].label} to ${selectedCells.size} zone${selectedCells.size>1?'s':''}`); selectedCells.clear(); updateEditor();}
-function clearSelection(){selectedCells.clear(); renderGrid(); updateEditor();}
+function updateCropReq() {
+    const val = document.getElementById('crop-select').value;
+    document.getElementById('crop-req').textContent = val ? CROP_REQ_TEXT[val] : 'Select a crop to see moisture & light requirements.';
+}
+function applyToSelected() {
+    const crop = document.getElementById('crop-select').value;
+    if (!crop) { showToast('Please select a crop type first.'); return; }
+    selectedCells.forEach(i => {
+        cells[i].crop          = crop;
+        cells[i].idealMoisture = CROPS[crop].idealMoisture;
+        cells[i].idealLight    = CROPS[crop].idealLight;
+        if (cells[i].moisture !== null) recalcStatus(i);
+    });
+    renderGrid(); renderStats(); renderAlerts();
+    showToast(`✓ Applied ${CROPS[crop].label} to ${selectedCells.size} zone${selectedCells.size>1?'s':''}`);
+    selectedCells.clear(); updateEditor();
+}
+function clearSelection() { selectedCells.clear(); renderGrid(); updateEditor(); }
 document.getElementById('crop-select').addEventListener('change', updateCropReq);
 
-// ─── API CALLS ──────────────────────────────────────────────
-async function fetchReadings(){
-    try{
+// ─── STATISTICS TAB ──────────────────────────────────────────
+let chartInstance = null;
+
+async function renderStatisticsTab() {
+    // Show loading state
+    ['stat-water-saved','stat-money-saved','stat-energy-saved','stat-optimal-pct']
+        .forEach(id => document.getElementById(id).textContent = '…');
+
+    let data;
+    try {
+        const resp = await fetch(`${STATS_URL}?days=${activePeriodDays}`);
+        if (!resp.ok) throw new Error('Stats fetch failed');
+        data = await resp.json();
+    } catch(e) {
+        showToast('Could not load statistics');
+        ['stat-water-saved','stat-money-saved','stat-energy-saved','stat-optimal-pct']
+            .forEach(id => document.getElementById(id).textContent = '—');
+        return;
+    }
+
+    // ── KPI cards ────────────────────────────────────────────
+    const wl = data.total_water_saved_l;
+    document.getElementById('stat-water-saved').textContent  = wl < 1000 ? Math.round(wl).toLocaleString() + ' L' : (wl/1000).toFixed(1) + ' kL';
+    document.getElementById('stat-money-saved').textContent  = '£' + data.total_cost_saved_gbp.toFixed(2);
+    document.getElementById('stat-energy-saved').textContent = data.total_energy_saved_kwh.toFixed(1) + ' kWh';
+    document.getElementById('stat-optimal-pct').textContent  = data.overall_optimal_pct + '%';
+    document.getElementById('stat-water-sub').textContent    = `over last ${activePeriodDays} day${activePeriodDays>1?'s':''}`;
+    document.getElementById('stat-money-sub').textContent    = `water + pump energy over ${activePeriodDays}d`;
+    document.getElementById('stat-energy-sub').textContent   = `pump runtime reduction over ${activePeriodDays}d`;
+
+    // ── Chart ─────────────────────────────────────────────────
+    const canvas = document.getElementById('savings-chart');
+    const empty  = document.getElementById('chart-empty');
+
+    if (!data.daily_breakdown || data.daily_breakdown.length === 0) {
+        canvas.style.display = 'none';
+        empty.style.display  = 'flex';
+    } else {
+        canvas.style.display = 'block';
+        empty.style.display  = 'none';
+
+        const labels   = data.daily_breakdown.map(d => {
+            const dt = new Date(d.date);
+            return dt.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' });
+        });
+        const baseline = data.daily_breakdown.map(d => d.baseline_l);
+        const actual   = data.daily_breakdown.map(d => d.actual_l);
+        const saved    = data.daily_breakdown.map(d => d.saved_l);
+
+        if (chartInstance) {
+            chartInstance.data.labels            = labels;
+            chartInstance.data.datasets[0].data = baseline;
+            chartInstance.data.datasets[1].data = actual;
+            chartInstance.data.datasets[2].data = saved;
+            chartInstance.update();
+        } else {
+            chartInstance = new Chart(canvas.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [
+                        { label: 'Baseline (L)', data: baseline, backgroundColor: 'rgba(160,192,216,0.6)', borderColor: '#7eb8d4', borderWidth: 1, borderRadius: 4 },
+                        { label: 'Actual (L)',   data: actual,   backgroundColor: 'rgba(61,122,79,0.6)',   borderColor: '#3d7a4f', borderWidth: 1, borderRadius: 4 },
+                        { label: 'Saved (L)',    data: saved,    backgroundColor: 'rgba(240,192,64,0.7)',  borderColor: '#f0c040', borderWidth: 1, borderRadius: 4, type: 'line', fill: false, tension: 0.35, pointRadius: 3 },
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+                        y: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { size: 11 } }, title: { display: true, text: 'Litres', font: { size: 11 } } }
+                    }
+                }
+            });
+        }
+    }
+
+    // ── Zone efficiency table ─────────────────────────────────
+    const table = document.getElementById('zone-efficiency-table');
+    if (!data.zone_breakdown || data.zone_breakdown.length === 0) {
+        table.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;padding:1rem 0">No zone data yet — keep the backend running to accumulate stats.</div>';
+        return;
+    }
+
+    table.innerHTML = data.zone_breakdown.map(z => {
+        const name      = PLOT_ID_TO_NAME[z.plot_id] || z.plot_id.slice(0,8);
+        const idx       = ZONES_BACKEND[z.plot_id];
+        const cell      = idx !== undefined ? cells[idx] : null;
+        const cropInfo  = cell?.crop ? CROPS[cell.crop] : null;
+        const cropLabel = cropInfo ? cropInfo.emoji + ' ' + cropInfo.label : '—';
+        const eff       = z.efficiency_pct;
+        const barColor  = eff >= 80 ? '#2ecc71' : eff >= 50 ? '#f0c040' : '#e74c3c';
+        return `<div class="eff-row">
+            <div class="eff-name">${name}</div>
+            <div class="eff-crop">${cropLabel}</div>
+            <div class="eff-bar-wrap"><div class="eff-bar" style="width:${eff}%;background:${barColor}"></div></div>
+            <div class="eff-value" style="color:${barColor}">${eff}%</div>
+            <div class="eff-saved">💧 ${Math.round(z.water_saved_l)} L saved</div>
+        </div>`;
+    }).join('');
+}
+
+// ─── API: READINGS ───────────────────────────────────────────
+async function fetchReadings() {
+    try {
         const resp = await fetch(API_URL);
-        if(!resp.ok) return;
-        const data = await resp.json();
+        if (!resp.ok) return;
+        const data   = await resp.json();
         const latest = {};
-        data.forEach(r=>{if(!latest[r.plot_id]) latest[r.plot_id]=r;});
-        Object.entries(latest).forEach(([plot_id,r])=>{
-            const idx=ZONES_BACKEND[plot_id]; if(idx===undefined) return;
-            cells[idx].moisture=r.moisture; cells[idx].light=r.light;
-            if(!cells[idx].crop){ cells[idx].crop='wheat'; cells[idx].idealMoisture=55; }
+        data.forEach(r => { if (!latest[r.plot_id]) latest[r.plot_id] = r; });
+        Object.entries(latest).forEach(([plot_id, r]) => {
+            const idx = ZONES_BACKEND[plot_id];
+            if (idx === undefined) return;
+            cells[idx].moisture = r.moisture;
+            cells[idx].light    = r.light;
+            if (!cells[idx].crop) { cells[idx].crop = 'wheat'; cells[idx].idealMoisture = 55; }
             recalcStatus(idx);
         });
         renderGrid(); renderStats(); renderAlerts();
-    }catch(e){}
+        if (document.getElementById('tab-stats').classList.contains('active')) renderStatisticsTab();
+    } catch(e) {}
 }
-// ─── WEATHER ────────────────────────────────────────────────
-async function fetchWeather(){
+
+// ─── API: WEATHER ────────────────────────────────────────────
+async function fetchWeather() {
     try {
-        const url = `${BACKEND_WEATHER_BASE}/hourly?lat=${currentLocation.lat}&lon=${currentLocation.lon}`;
-        const resp = await fetch(url);
-        if(!resp.ok) throw new Error('Weather fetch failed');
-        const data = await resp.json();
-
+        const resp = await fetch(`${BACKEND_WEATHER_BASE}/hourly?lat=${currentLocation.lat}&lon=${currentLocation.lon}`);
+        if (!resp.ok) throw new Error();
+        const data  = await resp.json();
         document.getElementById('location-label').textContent = data.location || 'UK';
-
-        const strip = document.getElementById('weather-strip'); 
+        const strip = document.getElementById('weather-strip');
         strip.innerHTML = '';
         const now = new Date();
-
         data.hourly.forEach(h => {
-            const t = new Date(h.time);
+            const t    = new Date(h.time);
             const pill = document.createElement('div');
-            pill.className = 'hour-pill' + (Math.abs(t-now) < 3600000 ? ' current' : '');
-            pill.innerHTML = `
-                <span class="temp">${h.temp_c.toFixed(1)}°</span>
-                <span>${t.getHours()}:00</span>
-                <span class="rain">🌧${h.chance_of_rain}%</span>
-            `;
+            pill.className = 'hour-pill' + (Math.abs(t - now) < 3600000 ? ' current' : '');
+            pill.innerHTML = `<span class="temp">${h.temp_c.toFixed(1)}°</span><span>${t.getHours()}:00</span><span class="rain">🌧${h.chance_of_rain}%</span>`;
             strip.appendChild(pill);
         });
-
-        // Rain logic: next 6 hours
-        rainExpected = data.hourly.some(h => {
-            const t = new Date(h.time);
-            return t > now && t < new Date(+now + 6*3600000) && h.chance_of_rain > 60;
-        });
-        const rainSoon = data.hourly.some(h => {
-            const t = new Date(h.time);
-            return t > now && t < new Date(+now + 6*3600000) && h.chance_of_rain > 20;
-        });
+        rainExpected = data.hourly.some(h => { const t=new Date(h.time); return t>now && t<new Date(+now+6*3600000) && h.chance_of_rain>60; });
+        const rainSoon = data.hourly.some(h => { const t=new Date(h.time); return t>now && t<new Date(+now+6*3600000) && h.chance_of_rain>20; });
         document.getElementById('rain-warning').textContent = rainSoon ? '🌧 Rain soon — no need to water!' : '';
-
         renderAlerts();
-    } catch(e) {
-        console.error(e);
-        showToast('Failed to fetch weather');
-    }
+    } catch(e) { showToast('Failed to fetch weather'); }
 }
 
-// ─── CITY SEARCH ─────────────────────────────────────────────
+// ─── CITY SEARCH ────────────────────────────────────────────
 document.getElementById('location-input').addEventListener('keypress', async e => {
-    if(e.key !== 'Enter') return;
+    if (e.key !== 'Enter') return;
     const query = e.target.value.trim();
-    if(!query) return;
-
+    if (!query) return;
     try {
         const resp = await fetch(`${BACKEND_WEATHER_BASE}/search?query=${encodeURIComponent(query)}`);
-        if(!resp.ok) throw new Error('Location search failed');
+        if (!resp.ok) throw new Error();
         const data = await resp.json();
-
-        if(!data.length){
-            showToast('City not found');
-            return;
-        }
-
+        if (!data.length) { showToast('City not found'); return; }
         const { lat, lon, name, region, country } = data[0];
         currentLocation = { lat, lon };
         document.getElementById('location-label').textContent = `${name}, ${region ? region + ', ' : ''}${country}`;
-
         fetchWeather();
-    } catch(err) {
-        console.error(err);
-        showToast('Failed to fetch location');
-    }
+    } catch(e) { showToast('Failed to fetch location'); }
 });
 
 // ─── TAB NAVIGATION ─────────────────────────────────────────
 document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-        // Remove active class from all buttons and tabs
+    btn.addEventListener('click', e => {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        
-        // Add active class to clicked button and target tab
         e.target.classList.add('active');
         document.getElementById(e.target.dataset.target).classList.add('active');
+        if (e.target.dataset.target === 'tab-stats') {
+            if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+            renderStatisticsTab();
+        }
+    });
+});
+
+// ─── PERIOD FILTER ───────────────────────────────────────────
+document.querySelectorAll('.period-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+        document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        activePeriodDays = parseInt(e.target.dataset.period);
+        if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+        renderStatisticsTab();
     });
 });
 
 // ─── UTILITIES ───────────────────────────────────────────────
-function updateClock(){document.getElementById('clock').textContent=new Date().toLocaleTimeString('en-GB');}
-function showToast(msg){const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2500);}
+function updateClock() { document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-GB'); }
+function showToast(msg) { const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2500); }
 
 // ─── INIT ────────────────────────────────────────────────────
 renderGrid(); renderStats(); renderAlerts();
 updateClock(); fetchWeather(); fetchReadings();
-setInterval(fetchReadings,5000);
-setInterval(fetchWeather,60000);
-setInterval(updateClock,1000);
+setInterval(fetchReadings, 5000);
+setInterval(fetchWeather,  60000);
+setInterval(updateClock,   1000);

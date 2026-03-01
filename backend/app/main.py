@@ -1,15 +1,12 @@
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware 
-from app.routers import readings, sensors, weather
+from fastapi.middleware.cors import CORSMiddleware
+from app.routers import readings, sensors, weather, stats
 
-app = FastAPI(
-    title="Orchard Monitoring Backend",
-    version="1.0.0"
-)
+app = FastAPI(title="Orchard Monitoring Backend", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], 
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -18,6 +15,7 @@ app.add_middleware(
 app.include_router(readings.router)
 app.include_router(sensors.router)
 app.include_router(weather.router)
+app.include_router(stats.router)
 
 @app.get("/")
 def root():

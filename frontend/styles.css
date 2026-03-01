@@ -433,3 +433,134 @@ select:focus, input:focus {
     pointer-events: none;
 }
 .toast.show { transform: translateY(0) scale(1); opacity: 1; }
+@keyframes pulse-green {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(61,122,79,0.4); }
+    50%      { box-shadow: 0 0 0 6px rgba(61,122,79,0); }
+}
+
+/* ─── PERIOD FILTER ─────────────────────────────────────────── */
+.period-filter {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+.period-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 0.4rem 1rem;
+    font-family: inherit;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.period-btn.active {
+    background: var(--leaf);
+    color: #fff;
+    border-color: var(--leaf);
+}
+.period-btn:hover:not(.active) {
+    border-color: var(--leaf);
+    color: var(--leaf);
+}
+
+/* ─── KPI CARDS ─────────────────────────────────────────────── */
+.kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.2rem;
+    margin-bottom: 2rem;
+}
+@media (max-width: 900px) { .kpi-row { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 520px) { .kpi-row { grid-template-columns: 1fr; } }
+
+.kpi-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.4rem 1.5rem;
+    box-shadow: var(--shadow-md);
+    display: flex;
+    align-items: center;
+    gap: 1.2rem;
+    transition: box-shadow 0.3s;
+}
+.kpi-card:hover { box-shadow: var(--shadow-hover); }
+.kpi-icon { font-size: 2rem; line-height: 1; }
+.kpi-value { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; color: var(--text); }
+.kpi-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-top: 0.15rem; }
+.kpi-sub   { font-size: 0.7rem; color: var(--muted); margin-top: 0.2rem; }
+
+.kpi-water  { border-left: 4px solid var(--sky); }
+.kpi-money  { border-left: 4px solid #f0c040; }
+.kpi-energy { border-left: 4px solid #e67e22; }
+.kpi-optimal{ border-left: 4px solid var(--leaf); }
+
+/* ─── STATS MAIN GRID ────────────────────────────────────────── */
+.stats-main-grid {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+@media (max-width: 900px) { .stats-main-grid { grid-template-columns: 1fr; } }
+
+.chart-container {
+    height: 260px;
+    position: relative;
+}
+.chart-empty {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-size: 0.85rem;
+    font-style: italic;
+}
+.chart-legend {
+    display: flex;
+    gap: 1.5rem;
+    margin-top: 0.8rem;
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-weight: 500;
+}
+.cl-dot {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border-radius: 2px;
+    margin-right: 0.3rem;
+    vertical-align: middle;
+}
+
+/* ─── ZONE EFFICIENCY TABLE ──────────────────────────────────── */
+.eff-row {
+    display: grid;
+    grid-template-columns: 5rem 7rem 1fr 3rem 5.5rem;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.82rem;
+}
+.eff-row:last-child { border-bottom: none; }
+.eff-name  { font-weight: 600; color: var(--text); }
+.eff-crop  { font-size: 0.75rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.eff-bar-wrap { height: 6px; background: var(--bg); border-radius: 3px; overflow: hidden; }
+.eff-bar   { height: 100%; border-radius: 3px; transition: width 0.6s cubic-bezier(0.4,0,0.2,1); }
+.eff-value { font-weight: 700; text-align: right; }
+.eff-saved { font-size: 0.7rem; color: var(--sky); text-align: right; font-weight: 500; }
+
+/* ─── ASSUMPTIONS FOOTNOTE ───────────────────────────────────── */
+.assumptions-note {
+    font-size: 0.72rem;
+    color: var(--muted);
+    background: rgba(44,26,14,0.03);
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    padding: 0.8rem 1rem;
+    line-height: 1.6;
+}

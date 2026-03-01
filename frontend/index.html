@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -28,12 +29,13 @@
 <nav class="tab-nav">
     <button class="tab-btn active" data-target="tab-field">🌾 Field Monitor</button>
     <button class="tab-btn" data-target="tab-config">⚙️ Configuration</button>
+    <button class="tab-btn" data-target="tab-stats">📈 Statistics</button>
 </nav>
 
 <main>
 
+    <!-- ── FIELD MONITOR ─────────────────────────────────────── -->
     <div id="tab-field" class="tab-content active">
-        
         <div class="tab-header">
             <div>
                 <div class="section-title">Field Monitor</div>
@@ -65,8 +67,8 @@
         </div>
     </div>
 
+    <!-- ── CONFIGURATION ─────────────────────────────────────── -->
     <div id="tab-config" class="tab-content">
-        
         <div class="tab-header">
             <div>
                 <div class="section-title">Field Configuration</div>
@@ -119,10 +121,92 @@
         </div>
     </div>
 
+    <!-- ── STATISTICS ─────────────────────────────────────────── -->
+    <div id="tab-stats" class="tab-content">
+        <div class="tab-header">
+            <div>
+                <div class="section-title">Statistics & Savings</div>
+                <div class="hint">Track water saved, cost savings and energy efficiency across your farm</div>
+            </div>
+            <!-- Period Filter -->
+            <div class="period-filter">
+                <button class="period-btn active" data-period="7">Last 7 Days</button>
+                <button class="period-btn" data-period="30">Last 30 Days</button>
+                <button class="period-btn" data-period="90">Last 90 Days</button>
+                <button class="period-btn" data-period="365">This Year</button>
+            </div>
+        </div>
+
+        <!-- KPI Cards Row -->
+        <div class="kpi-row">
+            <div class="kpi-card kpi-water">
+                <div class="kpi-icon">💧</div>
+                <div class="kpi-body">
+                    <div class="kpi-value" id="stat-water-saved">—</div>
+                    <div class="kpi-label">Litres Saved</div>
+                    <div class="kpi-sub" id="stat-water-sub">vs. unmanaged baseline</div>
+                </div>
+            </div>
+            <div class="kpi-card kpi-money">
+                <div class="kpi-icon">💰</div>
+                <div class="kpi-body">
+                    <div class="kpi-value" id="stat-money-saved">—</div>
+                    <div class="kpi-label">Cost Savings</div>
+                    <div class="kpi-sub" id="stat-money-sub">water + energy combined</div>
+                </div>
+            </div>
+            <div class="kpi-card kpi-energy">
+                <div class="kpi-icon">⚡</div>
+                <div class="kpi-body">
+                    <div class="kpi-value" id="stat-energy-saved">—</div>
+                    <div class="kpi-label">kWh Saved</div>
+                    <div class="kpi-sub" id="stat-energy-sub">pump energy reduction</div>
+                </div>
+            </div>
+            <div class="kpi-card kpi-optimal">
+                <div class="kpi-icon">🌱</div>
+                <div class="kpi-body">
+                    <div class="kpi-value" id="stat-optimal-pct">—</div>
+                    <div class="kpi-label">Optimal Rate</div>
+                    <div class="kpi-sub">zones in optimal range</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart + Zone Breakdown -->
+        <div class="stats-main-grid">
+            <!-- Daily Savings Chart -->
+            <div class="card">
+                <div class="card-title">📉 Daily Water Usage vs. Baseline</div>
+                <div class="chart-container">
+                    <canvas id="savings-chart"></canvas>
+                    <div id="chart-empty" class="chart-empty" style="display:none">Not enough data for chart yet</div>
+                </div>
+                <div class="chart-legend">
+                    <span><span class="cl-dot" style="background:#a0c0d8"></span>Baseline (unmanaged)</span>
+                    <span><span class="cl-dot" style="background:#3d7a4f"></span>Actual usage</span>
+                    <span><span class="cl-dot" style="background:#f0c040"></span>Saved</span>
+                </div>
+            </div>
+
+            <!-- Zone-by-zone breakdown -->
+            <div class="card">
+                <div class="card-title">🗂 Zone Efficiency Breakdown</div>
+                <div id="zone-efficiency-table">
+                    <!-- populated by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Assumptions footnote -->
+        <div class="assumptions-note">
+            <strong>Calculation assumptions:</strong> Baseline = 5 L/m²/day per zone. Water cost = £0.003/L. Pump power = 0.75 kW. Energy cost = £0.28/kWh. Zone area = 100 m². Savings are estimated from sensor data and may vary with actual field conditions.
+        </div>
+    </div>
+
 </main>
 
 <div class="toast" id="toast"></div>
-
 <script src="app.js"></script>
 </body>
 </html>
