@@ -1,5 +1,6 @@
 import os
 from app.mailer import EmailNotifier  # if you keep your mailer class in mailer.py
+from app.telegraphMailer import sendUpdate
 
 notifier = EmailNotifier(
     smtp_host="smtp.gmail.com",
@@ -15,3 +16,5 @@ def send_alert(to_email: str, subject: str, body: str):
         print(f"Email sent: {subject}")
     except Exception as e:
         print(f"Failed to send email: {e}")
+
+    sendUpdate()
