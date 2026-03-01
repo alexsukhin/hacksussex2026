@@ -1,5 +1,5 @@
 import requests
-x``
+
 def sendUpdate():
     token = "8649843600:AAHgRy24e0TpCCMT6HkMGDijhPTjm4RIBS4"
     chatID = "8717180588"
