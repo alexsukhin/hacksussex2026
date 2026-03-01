@@ -51,6 +51,23 @@ void connectWiFi() {
   }
 }
 
+float mapMoistureExp(int raw) {
+    // Clamp to calibration bounds first
+    raw = constrain(raw, 27, 887);
+    
+    // Shift so raw starts at 1 (log(0) is undefined)
+    float shifted     = raw - 27 + 1;
+    float shiftedMax  = 887 - 27 + 1;
+    
+    // Log correction flattens the exponential curve
+    float logVal      = log(shifted);
+    float logMax      = log(shiftedMax);
+    
+    // Map to 0-100%
+    float moisture    = (logVal / logMax) * 100.0;
+    return constrain(moisture, 0.0, 100.0);
+}
+
 // ─── READ SOIL MOISTURE ───────────────────────────────────
 int readSoil() {
   digitalWrite(SOIL_POWER, HIGH); // Power the probe
@@ -58,14 +75,8 @@ int readSoil() {
   int raw = analogRead(SOIL_SIG);
   digitalWrite(SOIL_POWER, LOW);  // Power off (reduces corrosion)
 
-  int moisture = map(raw, 222, 888, 0, 100);
-  if (raw < 222) {
-    moisture = 0;
-  }
-  
-  if (raw > 222) {
-    moisture = 100;
-  }
+  int moisture = (int) mapMoistureExp(raw);
+  Serial.println(raw);
 
   return moisture;
 }
