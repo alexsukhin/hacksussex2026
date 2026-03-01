@@ -74,10 +74,7 @@ int readSoil() {
   delay(10);                      // Brief settle time
   int raw = analogRead(SOIL_SIG);
   digitalWrite(SOIL_POWER, LOW);  // Power off (reduces corrosion)
-
   int moisture = (int) mapMoistureExp(raw);
-  Serial.println(raw);
-
   return moisture;
 }
 
