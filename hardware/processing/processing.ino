@@ -31,6 +31,10 @@
 
 #include <WiFiS3.h>
 #include <ArduinoJson.h>
+#include <Wire.h>
+#include "Adafruit_VEML6070.h"
+
+Adafruit_VEML6070 uv = Adafruit_VEML6070();
 
 // ─── CONFIGURE THESE THREE LINES ──────────────────────────
 const char* WIFI_SSID     = "Hasan";      // <-- your phone hotspot name
@@ -99,7 +103,7 @@ int readSoil() {
 }
 
 // ─── HTTP POST ────────────────────────────────────────────
-void postReading(int moisture) {
+void postReading(int moisture, int light) {
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("WiFi lost, reconnecting...");
     connectWiFi();
@@ -110,7 +114,7 @@ void postReading(int moisture) {
   StaticJsonDocument<200> doc;
   doc["plot_id"]  = PLOT_ID;
   doc["moisture"] = moisture;
-  doc["light"]    = 0; // No light sensor attached, sends 0.
+  doc["light"]    = light; // No light sensor attached, sends 0.
                         // If you wire one up: replace with analogRead(LIGHT_PIN)
   String body;
   serializeJson(doc, body);
@@ -118,6 +122,9 @@ void postReading(int moisture) {
   Serial.print("\nPOST moisture: ");
   Serial.print(moisture);
   Serial.println("%");
+
+  Serial.print("\nPOST light: ");
+  Serial.println(light);
 
   if (!client.connect(SERVER_HOST, SERVER_PORT)) {
     Serial.println("Cannot reach server.");
@@ -159,6 +166,7 @@ void postReading(int moisture) {
 // ─── SETUP ────────────────────────────────────────────────
 void setup() {
   Serial.begin(9600);
+  uv.begin(VEML6070_1_T);  // pass in the integration time constant for light
   while (!Serial && millis() < 3000);
 
   pinMode(SOIL_POWER, OUTPUT);
@@ -178,6 +186,7 @@ void loop() {
   if (millis() - lastSendTime >= SEND_INTERVAL) {
     lastSendTime = millis();
     int moisture = readSoil();
-    postReading(moisture);
+    int light = uv.readUV();
+    postReading(moisture, light);
   }
 }

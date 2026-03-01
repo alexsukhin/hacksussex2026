@@ -47,9 +47,10 @@ const PLOT_ID_TO_NAME = Object.fromEntries(
     Object.entries(ZONES_BACKEND).map(([pid, idx]) => [pid, `Zone ${idx + 1}`])
 );
 
-let currentLocation  = { lat: 51.5074, lon: -0.1278 };
-let rainExpected     = false;
 let activePeriodDays = 7;
+let currentLocation = { lat: 51.5074, lon: -0.1278 }; // default London
+let rainExpected = false;
+let blightRisk = false; // Add this line to track fungal risk
 
 // ─── GRID STATE ─────────────────────────────────────────────
 const GRID_SIZE = 9;
@@ -67,14 +68,27 @@ let dragStart     = null;
 function recalcStatus(i) {
     const cell = cells[i];
     if (cell.moisture === null || !cell.idealMoisture) {
-        cell.status = 'unset'; cell.color = 'unset'; cell.score = null;
+        cell.status = 'unset'; cell.color = 'unset'; cell.score = null; cell.waterNeeded = 0;
         return;
     }
     const score = Math.round((cell.moisture / cell.idealMoisture) * 100);
     cell.score = score;
-    if (score < 80)       { cell.status = 'dry';           cell.color = 'red'; }
-    else if (score > 120) { cell.status = 'oversaturated'; cell.color = 'blue'; }
-    else                  { cell.status = 'optimal';       cell.color = 'green'; }
+    
+    // Calculate required water volume based on moisture deficit and light levels
+    if (cell.moisture < cell.idealMoisture) {
+        const moistureDeficit = cell.idealMoisture - cell.moisture;
+        const lightFactor = (cell.light && cell.idealLight) ? (cell.light / cell.idealLight) : 1;
+        const baseLitersPerPercent = 2; // Assuming 2L needed per 1% deficit
+        
+        // Round to 1 decimal place
+        cell.waterNeeded = Math.round((moistureDeficit * baseLitersPerPercent * lightFactor) * 10) / 10;
+    } else {
+        cell.waterNeeded = 0;
+    }
+
+    if (score < 80)        { cell.status = 'dry';           cell.color = 'red'; }
+    else if (score > 120)  { cell.status = 'oversaturated'; cell.color = 'blue'; }
+    else                   { cell.status = 'optimal';       cell.color = 'green'; }
 }
 
 // ─── GRID RENDER ────────────────────────────────────────────
@@ -104,7 +118,27 @@ function renderGrid() {
                 }, {passive: false});
                 el.addEventListener('touchend', endDrag);
             } else {
-                el.innerHTML = `<div class="cell-status-dot"></div><div class="cell-label"><div class="cell-crop">${cropText}</div><div class="cell-moisture">${cell.moisture !== null ? '💧 ' + cell.moisture + '%' : '— unset'}</div></div>`;
+                // Field Monitor Tab: Live data, no selection listeners
+                
+                // Calculate what text to show instead of the raw percentage
+                let moistureDisplay = '— unset';
+                if (cell.moisture !== null) {
+                    if (cell.waterNeeded > 0) {
+                        moistureDisplay = `🚰 ${cell.waterNeeded}L needed`;
+                    } else if (cell.status === 'oversaturated') {
+                        moistureDisplay = `💧 Oversaturated`;
+                    } else {
+                        moistureDisplay = `✅ 0L needed`;
+                    }
+                }
+
+                el.innerHTML = `
+                    <div class="cell-status-dot"></div>
+                    <div class="cell-label">
+                        <div class="cell-crop">${cropText}</div>
+                        <div class="cell-moisture">${moistureDisplay}</div>
+                    </div>
+                `;
             }
             grid.appendChild(el);
         });
@@ -114,37 +148,64 @@ function renderGrid() {
 // ─── ZONE SUMMARY PANEL ─────────────────────────────────────
 function renderStats() {
     const table = document.getElementById('zone-table');
-    table.innerHTML = cells.map(cell => {
-        const dotColor   = cell.status==='optimal'?'#2ecc71':cell.status==='dry'?'#e74c3c':cell.status==='oversaturated'?'#3498db':'#aaa';
-        const scoreWidth = cell.score ? Math.min(100, cell.score) : 0;
-        const cropLabel  = cell.crop ? `${CROPS[cell.crop]?.emoji} ${CROPS[cell.crop]?.label}` : '—';
-        return `<div class="zone-row">
-            <div class="zone-dot" style="background:${dotColor}"></div>
-            <div class="zone-name">${cell.name}</div>
-            <div class="zone-crop">${cropLabel}</div>
-            <div class="score-bar-wrap"><div class="score-bar" style="width:${scoreWidth}%;background:${dotColor}"></div></div>
-            <div class="zone-score" style="color:${dotColor}">${cell.score!==null?cell.score+'%':'—'}</div>
-            <div style="font-size:0.65rem;color:var(--muted);min-width:5rem;text-align:right">${cell.moisture!==null?'💧'+cell.moisture+'% ☀️'+cell.light:'no data'}</div>
-        </div>`;
+    table.innerHTML = cells.map(cell=>{
+        const dotColor  = cell.status==='optimal'?'#2ecc71':cell.status==='dry'?'#e74c3c':cell.status==='oversaturated'?'#3498db':'#aaa';
+        const barColor  = dotColor;
+        const scoreWidth = cell.score?Math.min(100,cell.score):0;
+        const cropLabel = cell.crop?`${CROPS[cell.crop]?.emoji} ${CROPS[cell.crop]?.label}`:'—';
+        
+        // Generate the water requirement text if needed
+        const waterText = cell.waterNeeded > 0 
+            ? `<br><span style="color:#e74c3c;font-weight:600;display:inline-block;margin-top:4px;">🚰 ${cell.waterNeeded}L needed</span>` 
+            : '';
+
+        return `
+            <div class="zone-row">
+                <div class="zone-dot" style="background:${dotColor}"></div>
+                <div class="zone-name">${cell.name}</div>
+                <div class="zone-crop">${cropLabel}</div>
+                <div class="score-bar-wrap"><div class="score-bar" style="width:${scoreWidth}%;background:${barColor}"></div></div>
+                <div class="zone-score" style="color:${dotColor}">${cell.score!==null?cell.score+'%':'—'}</div>
+                <div style="font-size:0.65rem;color:var(--muted);min-width:6rem;text-align:right">
+                    ${cell.moisture!==null? '💧'+cell.moisture+'% ☀️'+cell.light:'no data'}
+                    ${waterText}
+                </div>
+            </div>
+        `;
     }).join('');
 }
-
-// ─── ALERTS ─────────────────────────────────────────────────
+// ─── ALERTS RENDER ──────────────────────────────────────────
 function renderAlerts() {
     const list   = document.getElementById('alerts-list');
     const alerts = [];
+    
     cells.forEach(cell => {
-        if (cell.status === 'dry' && cell.crop) {
-            alerts.push(rainExpected
-                ? {icon:'🌧', text:`${cell.name} (${CROPS[cell.crop]?.label}) is dry — rain forecast, watering suppressed`, time:'Suppressed'}
-                : {icon:'🔴', text:`${cell.name} (${CROPS[cell.crop]?.label}) needs water now! Moisture: ${cell.moisture}%`, time:'Now'});
+        // 1. Dry Alerts
+        if(cell.status==='dry' && cell.crop){
+            if(rainExpected) {
+                alerts.push({icon:'🌧', text:`${cell.name} (${CROPS[cell.crop]?.label}) is dry — rain forecast, watering of ${cell.waterNeeded}L suppressed`, time:'Suppressed'});
+            } else {
+                alerts.push({icon:'🔴', text:`${cell.name} (${CROPS[cell.crop]?.label}) needs water! Moisture at ${cell.moisture}%. Apply approx ${cell.waterNeeded}L.`, time:'Now'});
+            }
         }
-        if (cell.status === 'oversaturated')
+        
+        // 2. Oversaturated Alerts
+        if(cell.status==='oversaturated'){
             alerts.push({icon:'🔵', text:`${cell.name} oversaturated — risk of root rot. Moisture: ${cell.moisture}%`, time:'Now'});
+        }
+
+        // 3. Bio-Alerts for Fungal Risk
+        if(cell.crop === 'potatoes' && blightRisk) {
+            alerts.push({
+                icon: '🍄', 
+                text: `Fungal Risk Warning: Warm & wet conditions coming. Inspect ${cell.name} leaves organically.`, 
+                time: 'Next 24h'
+            });
+        }
     });
-    list.innerHTML = alerts.length === 0
-        ? '<div class="no-alerts">✅ No alerts — all zones nominal</div>'
-        : alerts.map(a => `<div class="alert-item"><span class="alert-icon">${a.icon}</span><div><div class="alert-text">${a.text}</div><div class="alert-time">${a.time}</div></div></div>`).join('');
+
+    list.innerHTML = alerts.length===0?'<div class="no-alerts">✅ No alerts — all zones nominal</div>':
+        alerts.map(a=>`<div class="alert-item"><span class="alert-icon">${a.icon}</span><div><div class="alert-text">${a.text}</div><div class="alert-time">${a.time}</div></div></div>`).join('');
 }
 
 // ─── DRAG SELECTION ─────────────────────────────────────────
@@ -336,11 +397,30 @@ async function fetchWeather() {
             pill.innerHTML = `<span class="temp">${h.temp_c.toFixed(1)}°</span><span>${t.getHours()}:00</span><span class="rain">🌧${h.chance_of_rain}%</span>`;
             strip.appendChild(pill);
         });
-        rainExpected = data.hourly.some(h => { const t=new Date(h.time); return t>now && t<new Date(+now+6*3600000) && h.chance_of_rain>60; });
-        const rainSoon = data.hourly.some(h => { const t=new Date(h.time); return t>now && t<new Date(+now+6*3600000) && h.chance_of_rain>20; });
+
+        // Rain logic: next 6 hours
+        rainExpected = data.hourly.some(h => {
+            const t = new Date(h.time);
+            return t > now && t < new Date(+now + 6*3600000) && h.chance_of_rain > 60;
+        });
+
+        // Fungal/Blight logic: check next 24 hours for warm & wet conditions
+        blightRisk = data.hourly.some(h => {
+            const t = new Date(h.time);
+            return t > now && t < new Date(+now + 24*3600000) && h.temp_c >= 15 && h.chance_of_rain > 40;
+        });
+
+        const rainSoon = data.hourly.some(h => {
+            const t = new Date(h.time);
+            return t > now && t < new Date(+now + 6*3600000) && h.chance_of_rain > 20;
+        });
         document.getElementById('rain-warning').textContent = rainSoon ? '🌧 Rain soon — no need to water!' : '';
-        renderAlerts();
-    } catch(e) { showToast('Failed to fetch weather'); }
+
+        renderAlerts(); // This ensures alerts update as soon as weather risk changes
+    } catch(e) {
+        console.error(e);
+        showToast('Failed to fetch weather');
+    }
 }
 
 // ─── CITY SEARCH ────────────────────────────────────────────
