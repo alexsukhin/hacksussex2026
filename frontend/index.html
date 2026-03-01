@@ -34,7 +34,6 @@
 
 <main>
 
-    <!-- ── FIELD MONITOR ─────────────────────────────────────── -->
     <div id="tab-field" class="tab-content active">
         <div class="tab-header">
             <div>
@@ -67,7 +66,6 @@
         </div>
     </div>
 
-    <!-- ── CONFIGURATION ─────────────────────────────────────── -->
     <div id="tab-config" class="tab-content">
         <div class="tab-header">
             <div>
@@ -121,14 +119,12 @@
         </div>
     </div>
 
-    <!-- ── STATISTICS ─────────────────────────────────────────── -->
     <div id="tab-stats" class="tab-content">
         <div class="tab-header">
             <div>
                 <div class="section-title">Statistics & Savings</div>
                 <div class="hint">Track water saved, cost savings and energy efficiency across your farm</div>
             </div>
-            <!-- Period Filter -->
             <div class="period-filter">
                 <button class="period-btn active" data-period="7">Last 7 Days</button>
                 <button class="period-btn" data-period="30">Last 30 Days</button>
@@ -137,7 +133,6 @@
             </div>
         </div>
 
-        <!-- KPI Cards Row -->
         <div class="kpi-row">
             <div class="kpi-card kpi-water">
                 <div class="kpi-icon">💧</div>
@@ -173,9 +168,7 @@
             </div>
         </div>
 
-        <!-- Chart + Zone Breakdown -->
         <div class="stats-main-grid">
-            <!-- Daily Savings Chart -->
             <div class="card">
                 <div class="card-title">📉 Daily Water Usage vs. Baseline</div>
                 <div class="chart-container">
@@ -189,16 +182,13 @@
                 </div>
             </div>
 
-            <!-- Zone-by-zone breakdown -->
             <div class="card">
                 <div class="card-title">🗂 Zone Efficiency Breakdown</div>
                 <div id="zone-efficiency-table">
-                    <!-- populated by JS -->
                 </div>
             </div>
         </div>
 
-        <!-- Assumptions footnote -->
         <div class="assumptions-note">
             <strong>Calculation assumptions:</strong> Baseline = 5 L/m²/day per zone. Water cost = £0.003/L. Pump power = 0.75 kW. Energy cost = £0.28/kWh. Zone area = 100 m². Savings are estimated from sensor data and may vary with actual field conditions.
         </div>

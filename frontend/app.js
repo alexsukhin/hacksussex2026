@@ -1,4 +1,4 @@
-// ─── CONFIG ──────────────────────────────────────────────────
+// CONFIG
 const API_URL              = 'http://127.0.0.1:8000/readings/';
 const WEATHER_URL          = 'http://127.0.0.1:8000/weather/hourly';
 const BACKEND_WEATHER_BASE = 'http://127.0.0.1:8000/weather';
@@ -42,7 +42,7 @@ const ZONES_BACKEND = {
     "e6e36356-163d-4d79-ad3b-9a195cd6d5b8": 8,
 };
 
-// Reverse map: plot_id → zone name (used to label zone breakdown table)
+
 const PLOT_ID_TO_NAME = Object.fromEntries(
     Object.entries(ZONES_BACKEND).map(([pid, idx]) => [pid, `Zone ${idx + 1}`])
 );
@@ -52,7 +52,7 @@ let currentLocation = { lat: 51.5074, lon: -0.1278 }; // default London
 let rainExpected = false;
 let blightRisk = false; // Add this line to track fungal risk
 
-// ─── GRID STATE ─────────────────────────────────────────────
+// GRID STATE
 const GRID_SIZE = 9;
 let cells = Array.from({ length: GRID_SIZE }, (_, i) => ({
     id: i, name: `Zone ${i+1}`, crop: null, moisture: null, light: null,
@@ -64,7 +64,7 @@ let selectedCells = new Set();
 let isDragging    = false;
 let dragStart     = null;
 
-// ─── STATUS CALC ────────────────────────────────────────────
+// STATUS CALC
 function recalcStatus(i) {
     const cell = cells[i];
     if (cell.moisture === null || !cell.idealMoisture) {
@@ -78,9 +78,9 @@ function recalcStatus(i) {
     if (cell.moisture < cell.idealMoisture) {
         const moistureDeficit = cell.idealMoisture - cell.moisture;
         const lightFactor = (cell.light && cell.idealLight) ? (cell.light / cell.idealLight) : 1;
-        const baseLitersPerPercent = 2; // Assuming 2L needed per 1% deficit
+        const baseLitersPerPercent = 2; // 2L needed per 1% deficit
         
-        // Round to 1 decimal place
+        // Round to 1 d
         cell.waterNeeded = Math.round((moistureDeficit * baseLitersPerPercent * lightFactor) * 10) / 10;
     } else {
         cell.waterNeeded = 0;
@@ -91,7 +91,7 @@ function recalcStatus(i) {
     else                   { cell.status = 'optimal';       cell.color = 'green'; }
 }
 
-// ─── GRID RENDER ────────────────────────────────────────────
+// GRID RENDER
 function renderGrid() {
     document.querySelectorAll('.field-grid').forEach(grid => {
         grid.innerHTML = '';
@@ -118,9 +118,7 @@ function renderGrid() {
                 }, {passive: false});
                 el.addEventListener('touchend', endDrag);
             } else {
-                // Field Monitor Tab: Live data, no selection listeners
                 
-                // Calculate what text to show instead of the raw percentage
                 let moistureDisplay = '— unset';
                 if (cell.moisture !== null) {
                     if (cell.waterNeeded > 0) {
@@ -145,7 +143,7 @@ function renderGrid() {
     });
 }
 
-// ─── ZONE SUMMARY PANEL ─────────────────────────────────────
+// ZONE SUMMARY PANEL
 function renderStats() {
     const table = document.getElementById('zone-table');
     table.innerHTML = cells.map(cell=>{
@@ -154,7 +152,7 @@ function renderStats() {
         const scoreWidth = cell.score?Math.min(100,cell.score):0;
         const cropLabel = cell.crop?`${CROPS[cell.crop]?.emoji} ${CROPS[cell.crop]?.label}`:'—';
         
-        // Generate the water requirement text if needed
+        // generate water requirement text if needed
         const waterText = cell.waterNeeded > 0 
             ? `<br><span style="color:#e74c3c;font-weight:600;display:inline-block;margin-top:4px;">🚰 ${cell.waterNeeded}L needed</span>` 
             : '';
@@ -174,13 +172,13 @@ function renderStats() {
         `;
     }).join('');
 }
-// ─── ALERTS RENDER ──────────────────────────────────────────
+// ALERTS RENDER 
 function renderAlerts() {
     const list   = document.getElementById('alerts-list');
     const alerts = [];
     
     cells.forEach(cell => {
-        // 1. Dry Alerts
+        // Dry Alerts
         if(cell.status==='dry' && cell.crop){
             if(rainExpected) {
                 alerts.push({icon:'🌧', text:`${cell.name} (${CROPS[cell.crop]?.label}) is dry — rain forecast, watering of ${cell.waterNeeded}L suppressed`, time:'Suppressed'});
@@ -189,12 +187,12 @@ function renderAlerts() {
             }
         }
         
-        // 2. Oversaturated Alerts
+        // Oversaturated Alerts
         if(cell.status==='oversaturated'){
             alerts.push({icon:'🔵', text:`${cell.name} oversaturated — risk of root rot. Moisture: ${cell.moisture}%`, time:'Now'});
         }
 
-        // 3. Bio-Alerts for Fungal Risk
+        // Bio-Alerts for Fungal Risk
         if(cell.crop === 'potatoes' && blightRisk) {
             alerts.push({
                 icon: '🍄', 
@@ -208,7 +206,7 @@ function renderAlerts() {
         alerts.map(a=>`<div class="alert-item"><span class="alert-icon">${a.icon}</span><div><div class="alert-text">${a.text}</div><div class="alert-time">${a.time}</div></div></div>`).join('');
 }
 
-// ─── DRAG SELECTION ─────────────────────────────────────────
+// DRAG SELECTION
 function startDrag(i)  { isDragging=true; dragStart=i; selectedCells.clear(); selectedCells.add(i); renderGrid(); updateEditor(); }
 function extendDrag(i) {
     if (!isDragging) return;
@@ -223,7 +221,7 @@ function extendDrag(i) {
 function endDrag() { isDragging = false; }
 document.addEventListener('mouseup', endDrag);
 
-// ─── CROP EDITOR ────────────────────────────────────────────
+// CROP EDITOR
 function updateEditor() {
     const editor   = document.getElementById('crop-editor');
     const prompt   = document.getElementById('editor-prompt');
@@ -255,7 +253,7 @@ function applyToSelected() {
 function clearSelection() { selectedCells.clear(); renderGrid(); updateEditor(); }
 document.getElementById('crop-select').addEventListener('change', updateCropReq);
 
-// ─── STATISTICS TAB ──────────────────────────────────────────
+// STATISTICS TAB
 let chartInstance = null;
 
 async function renderStatisticsTab() {
@@ -275,7 +273,7 @@ async function renderStatisticsTab() {
         return;
     }
 
-    // ── KPI cards ────────────────────────────────────────────
+    // KPI cards 
     const wl = data.total_water_saved_l;
     document.getElementById('stat-water-saved').textContent  = wl < 1000 ? Math.round(wl).toLocaleString() + ' L' : (wl/1000).toFixed(1) + ' kL';
     document.getElementById('stat-money-saved').textContent  = '£' + data.total_cost_saved_gbp.toFixed(2);
@@ -285,7 +283,7 @@ async function renderStatisticsTab() {
     document.getElementById('stat-money-sub').textContent    = `water + pump energy over ${activePeriodDays}d`;
     document.getElementById('stat-energy-sub').textContent   = `pump runtime reduction over ${activePeriodDays}d`;
 
-    // ── Chart ─────────────────────────────────────────────────
+    // Chart 
     const canvas = document.getElementById('savings-chart');
     const empty  = document.getElementById('chart-empty');
 
@@ -334,7 +332,7 @@ async function renderStatisticsTab() {
         }
     }
 
-    // ── Zone efficiency table ─────────────────────────────────
+    // Zone efficiency table 
     const table = document.getElementById('zone-efficiency-table');
     if (!data.zone_breakdown || data.zone_breakdown.length === 0) {
         table.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;padding:1rem 0">No zone data yet — keep the backend running to accumulate stats.</div>';
@@ -359,7 +357,7 @@ async function renderStatisticsTab() {
     }).join('');
 }
 
-// ─── API: READINGS ───────────────────────────────────────────
+// API READINGS 
 async function fetchReadings() {
     try {
         const resp = await fetch(API_URL);
@@ -380,7 +378,7 @@ async function fetchReadings() {
     } catch(e) {}
 }
 
-// ─── API: WEATHER ────────────────────────────────────────────
+// API WEATHER 
 async function fetchWeather() {
     try {
         const resp = await fetch(`${BACKEND_WEATHER_BASE}/hourly?lat=${currentLocation.lat}&lon=${currentLocation.lon}`);
@@ -398,13 +396,13 @@ async function fetchWeather() {
             strip.appendChild(pill);
         });
 
-        // Rain logic: next 6 hours
+        // Rain logic next 6 hours
         rainExpected = data.hourly.some(h => {
             const t = new Date(h.time);
             return t > now && t < new Date(+now + 6*3600000) && h.chance_of_rain > 60;
         });
 
-        // Fungal/Blight logic: check next 24 hours for warm & wet conditions
+        // Fungal/Blight logic check next 24 hours for warm & wet conditions
         blightRisk = data.hourly.some(h => {
             const t = new Date(h.time);
             return t > now && t < new Date(+now + 24*3600000) && h.temp_c >= 15 && h.chance_of_rain > 40;
@@ -416,14 +414,14 @@ async function fetchWeather() {
         });
         document.getElementById('rain-warning').textContent = rainSoon ? '🌧 Rain soon — no need to water!' : '';
 
-        renderAlerts(); // This ensures alerts update as soon as weather risk changes
+        renderAlerts(); // ensures alerts update as soon as weather risk changes
     } catch(e) {
         console.error(e);
         showToast('Failed to fetch weather');
     }
 }
 
-// ─── CITY SEARCH ────────────────────────────────────────────
+// CITY SEARCH 
 document.getElementById('location-input').addEventListener('keypress', async e => {
     if (e.key !== 'Enter') return;
     const query = e.target.value.trim();
@@ -440,7 +438,7 @@ document.getElementById('location-input').addEventListener('keypress', async e =
     } catch(e) { showToast('Failed to fetch location'); }
 });
 
-// ─── TAB NAVIGATION ─────────────────────────────────────────
+// TAB NAVIGATION 
 document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', e => {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -454,7 +452,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     });
 });
 
-// ─── PERIOD FILTER ───────────────────────────────────────────
+// PERIOD FILTER
 document.querySelectorAll('.period-btn').forEach(btn => {
     btn.addEventListener('click', e => {
         document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
@@ -465,11 +463,11 @@ document.querySelectorAll('.period-btn').forEach(btn => {
     });
 });
 
-// ─── UTILITIES ───────────────────────────────────────────────
+// UTILITIES 
 function updateClock() { document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-GB'); }
 function showToast(msg) { const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2500); }
 
-// ─── INIT ────────────────────────────────────────────────────
+// INIT
 renderGrid(); renderStats(); renderAlerts();
 updateClock(); fetchWeather(); fetchReadings();
 setInterval(fetchReadings, 5000);
