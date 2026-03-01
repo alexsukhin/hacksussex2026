@@ -13,7 +13,6 @@ const char* SERVER_HOST   = "172.20.10.2";          // laptop id on hotspot
 const int   SERVER_PORT   = 8000;
 const char* SERVER_PATH   = "/readings/";
 
-// Zone 1 plot UUID — must match your Supabase plots table
 const char* PLOT_ID = "950b5dd5-c2e6-4aeb-b2d0-8cf5b89c033e";
 
 const int SOIL_SIG   = A0;
@@ -25,7 +24,6 @@ const unsigned long SEND_INTERVAL = 10000;
 WiFiClient client;
 unsigned long lastSendTime = 0;
 
-// ─── WIFI ─────────────────────────────────────────────────
 void connectWiFi() {
   Serial.print("\nConnecting to: ");
   Serial.println(WIFI_SSID);
@@ -68,7 +66,6 @@ float mapMoistureExp(int raw) {
     return constrain(moisture, 0.0, 100.0);
 }
 
-// ─── READ SOIL MOISTURE ───────────────────────────────────
 int readSoil() {
   digitalWrite(SOIL_POWER, HIGH); // Power the probe
   delay(10);                      // Brief settle time
@@ -78,7 +75,6 @@ int readSoil() {
   return moisture;
 }
 
-// ─── HTTP POST ────────────────────────────────────────────
 void postReading(int moisture, int light) {
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("WiFi lost, reconnecting...");
@@ -90,8 +86,8 @@ void postReading(int moisture, int light) {
   StaticJsonDocument<200> doc;
   doc["plot_id"]  = PLOT_ID;
   doc["moisture"] = moisture;
-  doc["light"]    = light; // No light sensor attached, sends 0.
-                        // If you wire one up: replace with analogRead(LIGHT_PIN)
+  doc["light"]    = light; 
+                        
   String body;
   serializeJson(doc, body);
 
@@ -139,7 +135,6 @@ void postReading(int moisture, int light) {
   client.stop();
 }
 
-// ─── SETUP ────────────────────────────────────────────────
 void setup() {
   Serial.begin(9600);
   uv.begin(VEML6070_1_T);  // pass in the integration time constant for light
@@ -151,7 +146,6 @@ void setup() {
   connectWiFi();
 }
 
-// ─── LOOP ─────────────────────────────────────────────────
 void loop() {
   if (WiFi.status() != WL_CONNECTED) {
     connectWiFi();
