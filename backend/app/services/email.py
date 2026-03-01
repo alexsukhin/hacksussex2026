@@ -1,5 +1,5 @@
 import os
-from app.mailer import EmailNotifier  # if you keep your mailer class in mailer.py
+from app.mailer import EmailNotifier
 from app.telegraphMailer import sendUpdate
 
 notifier = EmailNotifier(

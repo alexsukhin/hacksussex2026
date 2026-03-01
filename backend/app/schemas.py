@@ -3,7 +3,6 @@ from uuid import UUID
 from datetime import datetime, date
 from typing import Optional, List
 
-# ─── READINGS ────────────────────────────────────────────────
 class ReadingCreate(BaseModel):
     plot_id: UUID
     moisture: int
@@ -22,7 +21,6 @@ class ReadingResponse(BaseModel):
     class Config:
         from_attributes = True
 
-# ─── ZONE STATS ───────────────────────────────────────────────
 class ZoneStatResponse(BaseModel):
     plot_id: UUID
     stat_date: date

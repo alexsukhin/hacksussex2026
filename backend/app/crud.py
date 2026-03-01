@@ -4,7 +4,6 @@ from app import models, schemas
 from datetime import datetime, timezone, timedelta
 from collections import defaultdict
 
-# ─── SAVINGS CONSTANTS ────────────────────────────────────────
 BASELINE_L_PER_M2_DAY = 5.0
 ZONE_AREA_M2           = 100.0
 WATER_COST_PER_L       = 0.003
@@ -12,7 +11,6 @@ PUMP_KW                = 0.75
 ENERGY_COST_PER_KWH    = 0.28
 PUMP_HOURS_PER_L       = 0.0005
 
-# ─── READINGS ────────────────────────────────────────────────
 def create_reading(db: Session, reading: schemas.ReadingCreate):
     db_reading = models.Reading(**reading.dict())
     db.add(db_reading)
@@ -23,7 +21,6 @@ def create_reading(db: Session, reading: schemas.ReadingCreate):
 def get_readings(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Reading).order_by(models.Reading.created_at.desc()).offset(skip).limit(limit).all()
 
-# ─── INTERNAL HELPERS ─────────────────────────────────────────
 def _savings_for_day(avg_moisture: float, ideal_moisture: int):
     if ideal_moisture == 0:
         return dict(water_saved_l=0.0, cost_saved_gbp=0.0, energy_saved_kwh=0.0)
@@ -37,7 +34,6 @@ def _savings_for_day(avg_moisture: float, ideal_moisture: int):
         energy_saved_kwh = saved_l * PUMP_HOURS_PER_L * PUMP_KW,
     )
 
-# ─── ZONE STATS UPSERT ───────────────────────────────────────
 def upsert_zone_stat(db: Session, plot_id, moisture: int, ideal_moisture: int):
     """Called on every incoming reading. Upserts today's ZoneStat row."""
     today = datetime.now(timezone.utc).date()
@@ -55,7 +51,6 @@ def upsert_zone_stat(db: Session, plot_id, moisture: int, ideal_moisture: int):
         )
         db.add(stat)
 
-    # Rolling average
     n = stat.reading_count
     stat.avg_moisture    = (stat.avg_moisture * n + moisture) / (n + 1)
     stat.reading_count   = n + 1
@@ -74,7 +69,6 @@ def upsert_zone_stat(db: Session, plot_id, moisture: int, ideal_moisture: int):
     db.refresh(stat)
     return stat
 
-# ─── ZONE STATS QUERY ─────────────────────────────────────────
 def get_stats_summary(db: Session, days: int = 7):
     days   = min(max(days, 1), 365)
     cutoff = datetime.now(timezone.utc).date() - timedelta(days=days)
@@ -92,7 +86,6 @@ def get_stats_summary(db: Session, days: int = 7):
     total_opt    = sum(r.optimal_readings for r in rows)
     opt_pct      = round(total_opt / total_reads * 100, 1) if total_reads else 0.0
 
-    # Daily chart data
     daily = defaultdict(lambda: {"baseline_l": 0.0, "actual_l": 0.0, "saved_l": 0.0})
     for r in rows:
         d        = str(r.stat_date)
@@ -103,7 +96,6 @@ def get_stats_summary(db: Session, days: int = 7):
         daily[d]["saved_l"]    += round(r.water_saved_l, 1)
     daily_breakdown = [{"date": k, **v} for k, v in sorted(daily.items())]
 
-    # Per-zone breakdown
     zone_map = defaultdict(lambda: {"plot_id": None, "water_saved_l": 0.0,
                                      "reading_count": 0, "optimal_readings": 0})
     for r in rows:

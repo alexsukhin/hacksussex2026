@@ -35,10 +35,6 @@ class ZoneStat(Base):
     updated_at       = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 class EmailLog(Base):
-    """
-    Tracks the last time an alert email was sent per zone.
-    Persists across backend restarts so we never spam on reboot.
-    """
     __tablename__ = "email_log"
     plot_id    = Column(UUID(as_uuid=True), ForeignKey("plots.id"), primary_key=True)
     last_sent  = Column(DateTime(timezone=True), nullable=False)

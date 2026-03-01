@@ -44,10 +44,8 @@ def create_reading(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
-    # 1. Save the reading
     new_reading = crud.create_reading(db, reading)
 
-    # 2. Get plot — auto-create if missing
     plot = db.query(models.Plot).filter(models.Plot.id == new_reading.plot_id).first()
     if plot is None:
         plot = models.Plot(
@@ -62,10 +60,8 @@ def create_reading(
 
     irrigation_data = evaluate_irrigation(new_reading.moisture, plot.ideal_moisture)
 
-    # 3. Upsert today's ZoneStat row
     crud.upsert_zone_stat(db, new_reading.plot_id, new_reading.moisture, plot.ideal_moisture)
 
-    # 4. Rate-limited email alerts — checked and recorded in DB
     status = irrigation_data["status"]
     if status in ("Dry", "Oversaturated") and _should_send_email(db, new_reading.plot_id):
         _record_email_sent(db, new_reading.plot_id)

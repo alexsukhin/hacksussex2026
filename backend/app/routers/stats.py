@@ -13,8 +13,4 @@ def get_db():
 
 @router.get("/summary")
 def get_stats_summary(days: int = Query(default=7, ge=1, le=365), db: Session = Depends(get_db)):
-    """
-    Returns aggregated savings stats for the last `days` days.
-    Reads from the zone_stats table — persists across page refreshes.
-    """
     return crud.get_stats_summary(db, days=days)

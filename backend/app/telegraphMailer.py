@@ -1,5 +1,4 @@
 import requests
-#https://api.telegram.org/bot8649843600:AAHgRy24e0TpCCMT6HkMGDijhPTjm4RIBS4/getUpdates]
 
 token = "8649843600:AAHgRy24e0TpCCMT6HkMGDijhPTjm4RIBS4"
 chatID = "8717180588"

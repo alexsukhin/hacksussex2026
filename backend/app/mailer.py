@@ -1,10 +1,3 @@
-'''
-email is RainMakerEmailNotifier@gmail.com
-password is Zq'*^Q&1055?
-
-GMAIL APP PASSWORD is      ielp ubim yidw iqif
-'''
-
 import smtplib
 from email.message import EmailMessage
 from typing import Optional

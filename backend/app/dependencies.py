@@ -1,6 +1,5 @@
 from fastapi import Header, HTTPException
 
-# In production this would be an environment variable
 VALID_API_KEYS = {
     "arduino-zone1-key-abc123": "950b5dd5-c2e6-4aeb-b2d0-8cf5b89c033e",
     "mock-zones-key-xyz789": "mock"
