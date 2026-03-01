@@ -2,10 +2,12 @@ from fastapi import APIRouter, Depends, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime, timezone, timedelta
+import requests
 
 from app import schemas, crud, database, models
 from app.services.irrigation import evaluate_irrigation
 from app.services.email import send_alert
+
 
 router = APIRouter(prefix="/readings", tags=["readings"])
 
