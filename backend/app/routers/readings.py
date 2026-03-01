@@ -1,12 +1,33 @@
 from fastapi import APIRouter, Depends, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List
+from datetime import datetime, timezone, timedelta
 
 from app import schemas, crud, database, models
 from app.services.irrigation import evaluate_irrigation
 from app.services.email import send_alert
 
 router = APIRouter(prefix="/readings", tags=["readings"])
+
+EMAIL_COOLDOWN_HOURS = 0.1 # For testing, set to 1 for production
+
+def _should_send_email(db: Session, plot_id) -> bool:
+    """Check DB for last sent time — survives restarts."""
+    log = db.query(models.EmailLog).filter(models.EmailLog.plot_id == plot_id).first()
+    if log is None:
+        return True
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=EMAIL_COOLDOWN_HOURS)
+    return log.last_sent < cutoff
+
+def _record_email_sent(db: Session, plot_id):
+    """Upsert the last-sent timestamp into DB."""
+    log = db.query(models.EmailLog).filter(models.EmailLog.plot_id == plot_id).first()
+    now = datetime.now(timezone.utc)
+    if log is None:
+        db.add(models.EmailLog(plot_id=plot_id, last_sent=now))
+    else:
+        log.last_sent = now
+    db.commit()
 
 def get_db():
     db = database.SessionLocal()
@@ -24,14 +45,12 @@ def create_reading(
     # 1. Save the reading
     new_reading = crud.create_reading(db, reading)
 
-    # 2. Get plot — if no plot exists yet, auto-create one so stats always work
+    # 2. Get plot — auto-create if missing
     plot = db.query(models.Plot).filter(models.Plot.id == new_reading.plot_id).first()
-
     if plot is None:
-        # Auto-create a placeholder plot so readings are never orphaned
         plot = models.Plot(
             id=new_reading.plot_id,
-            name=f"Zone (auto)",
+            name="Zone (auto)",
             crop_type="other",
             ideal_moisture=60,
         )
@@ -41,23 +60,25 @@ def create_reading(
 
     irrigation_data = evaluate_irrigation(new_reading.moisture, plot.ideal_moisture)
 
-    # 3. Upsert today's ZoneStat row — persists across refreshes
+    # 3. Upsert today's ZoneStat row
     crud.upsert_zone_stat(db, new_reading.plot_id, new_reading.moisture, plot.ideal_moisture)
 
-    # 4. Email alerts (wrapped so a mail failure never breaks the response)
-    try:
-        if irrigation_data["status"] == "Dry":
-            background_tasks.add_task(send_alert,
-                to_email="sukhinalexander5679@gmail.com",
-                subject=f"Zone {plot.name} Needs Water",
-                body=f"Zone {plot.name} is dry!\n\nMoisture: {new_reading.moisture}%")
-        elif irrigation_data["status"] == "Oversaturated":
-            background_tasks.add_task(send_alert,
-                to_email="sukhinalexander5679@gmail.com",
-                subject=f"Zone {plot.name} Oversaturated",
-                body=f"Zone {plot.name} is oversaturated!\n\nMoisture: {new_reading.moisture}%")
-    except Exception as e:
-        print(f"Alert scheduling error: {e}")
+    # 4. Rate-limited email alerts — checked and recorded in DB
+    status = irrigation_data["status"]
+    if status in ("Dry", "Oversaturated") and _should_send_email(db, new_reading.plot_id):
+        _record_email_sent(db, new_reading.plot_id)
+        subject = f"Zone {plot.name} {'Needs Water' if status == 'Dry' else 'Oversaturated'}"
+        body = (
+            f"Zone {plot.name} is {'dry' if status == 'Dry' else 'oversaturated'}!\n\n"
+            f"Moisture: {new_reading.moisture}%\n\n"
+            f"Next alert for this zone in {EMAIL_COOLDOWN_HOURS} hour(s)."
+        )
+        background_tasks.add_task(
+            send_alert,
+            to_email="sukhinalexander5679@gmail.com",
+            subject=subject,
+            body=body,
+        )
 
     return new_reading
 
