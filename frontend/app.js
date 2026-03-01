@@ -44,6 +44,7 @@ const ZONES_BACKEND = {
 
 let currentLocation = { lat: 51.5074, lon: -0.1278 }; // default London
 let rainExpected = false;
+let blightRisk = false; // Add this line to track fungal risk
 
 // ─── GRID STATE ─────────────────────────────────────────────
 const GRID_SIZE = 9; // 3x3
@@ -196,7 +197,9 @@ function renderStats() {
 function renderAlerts() {
     const list = document.getElementById('alerts-list');
     const alerts = [];
-    cells.forEach(cell=>{
+    
+    cells.forEach(cell => {
+        // 1. Dry Alerts
         if(cell.status==='dry' && cell.crop){
             if(rainExpected) {
                 alerts.push({icon:'🌧', text:`${cell.name} (${CROPS[cell.crop]?.label}) is dry — rain forecast, watering of ${cell.waterNeeded}L suppressed`, time:'Suppressed'});
@@ -204,13 +207,26 @@ function renderAlerts() {
                 alerts.push({icon:'🔴', text:`${cell.name} (${CROPS[cell.crop]?.label}) needs water! Moisture at ${cell.moisture}%. Apply approx ${cell.waterNeeded}L.`, time:'Now'});
             }
         }
+        
+        // 2. Oversaturated Alerts
         if(cell.status==='oversaturated'){
             alerts.push({icon:'🔵', text:`${cell.name} oversaturated — risk of root rot. Moisture: ${cell.moisture}%`, time:'Now'});
         }
+
+        // 3. Bio-Alerts for Fungal Risk
+        if(cell.crop === 'potatoes' && blightRisk) {
+            alerts.push({
+                icon: '🍄', 
+                text: `Fungal Risk Warning: Warm & wet conditions coming. Inspect ${cell.name} leaves organically.`, 
+                time: 'Next 24h'
+            });
+        }
     });
+
     list.innerHTML = alerts.length===0?'<div class="no-alerts">✅ No alerts — all zones nominal</div>':
         alerts.map(a=>`<div class="alert-item"><span class="alert-icon">${a.icon}</span><div><div class="alert-text">${a.text}</div><div class="alert-time">${a.time}</div></div></div>`).join('');
 }
+
 // ─── DRAG SELECTION ──────────────────────────────────────────
 function startDrag(i){isDragging=true;dragStart=i;selectedCells.clear();selectedCells.add(i);renderGrid();updateEditor();}
 function extendDrag(i){if(!isDragging) return; const cols=3,r1=Math.floor(dragStart/cols),c1=dragStart%cols,r2=Math.floor(i/cols),c2=i%cols,minR=Math.min(r1,r2),maxR=Math.max(r1,r2),minC=Math.min(c1,c2),maxC=Math.max(c1,c2);selectedCells.clear();for(let r=minR;r<=maxR;r++) for(let c=minC;c<=maxC;c++) selectedCells.add(r*cols+c);renderGrid();updateEditor();}
@@ -282,13 +298,20 @@ async function fetchWeather(){
             const t = new Date(h.time);
             return t > now && t < new Date(+now + 6*3600000) && h.chance_of_rain > 60;
         });
+
+        // Fungal/Blight logic: check next 24 hours for warm & wet conditions
+        blightRisk = data.hourly.some(h => {
+            const t = new Date(h.time);
+            return t > now && t < new Date(+now + 24*3600000) && h.temp_c >= 15 && h.chance_of_rain > 40;
+        });
+
         const rainSoon = data.hourly.some(h => {
             const t = new Date(h.time);
             return t > now && t < new Date(+now + 6*3600000) && h.chance_of_rain > 20;
         });
         document.getElementById('rain-warning').textContent = rainSoon ? '🌧 Rain soon — no need to water!' : '';
 
-        renderAlerts();
+        renderAlerts(); // This ensures alerts update as soon as weather risk changes
     } catch(e) {
         console.error(e);
         showToast('Failed to fetch weather');
