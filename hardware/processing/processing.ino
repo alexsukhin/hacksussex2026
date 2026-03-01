@@ -1,34 +1,3 @@
-/*
-  ============================================================
-  RainMaker – Zone 1 Sensor Node
-  Arduino Uno R4 WiFi
-
-  Reads a soil moisture sensor and POSTs JSON readings to
-  the FastAPI backend every 10 seconds.
-
-  ─── EDUROAM NOTE ───────────────────────────────────────────
-  Eduroam uses WPA2-Enterprise (802.1X). The R4 WiFi library
-  only supports WPA2-Personal (PSK), so it CANNOT join eduroam
-  directly.
-
-  ✅ Fix: Hotspot your phone, connect BOTH your laptop and
-     this Arduino to the hotspot. Everything works perfectly.
-     Find your laptop's hotspot IP with:
-       Windows → ipconfig  (look for Wi-Fi adapter IPv4)
-       Mac/Linux → ifconfig / ip a
-
-  ─── WIRING ─────────────────────────────────────────────────
-  Moisture sensor SIG → A0
-  Moisture sensor VCC → D7  (digital pin used as switched
-                              power to prevent probe corrosion)
-  Moisture sensor GND → GND
-
-  ─── LIBRARIES NEEDED ───────────────────────────────────────
-  • ArduinoJson  (search in Library Manager, by Benoit Blanchon)
-  • WiFiS3       (included with the UNO R4 board package)
-  ============================================================
-*/
-
 #include <WiFiS3.h>
 #include <ArduinoJson.h>
 #include <Wire.h>
@@ -36,10 +5,9 @@
 
 Adafruit_VEML6070 uv = Adafruit_VEML6070();
 
-// ─── CONFIGURE THESE THREE LINES ──────────────────────────
-const char* WIFI_SSID     = "Hasan";      // <-- your phone hotspot name
-const char* WIFI_PASSWORD = "Flytrap1234";  // <-- your phone hotspot password
-const char* SERVER_HOST   = "172.20.10.2";          // <-- your laptop's IP on the hotspot
+const char* WIFI_SSID     = "Hasan";      // hotspot
+const char* WIFI_PASSWORD = "Flytrap1234";  // password
+const char* SERVER_HOST   = "172.20.10.2";          // laptop id on hotspot
 // ──────────────────────────────────────────────────────────
 
 const int   SERVER_PORT   = 8000;
@@ -48,7 +16,6 @@ const char* SERVER_PATH   = "/readings/";
 // Zone 1 plot UUID — must match your Supabase plots table
 const char* PLOT_ID = "950b5dd5-c2e6-4aeb-b2d0-8cf5b89c033e";
 
-// Sensor pins
 const int SOIL_SIG   = A0;
 const int SOIL_POWER = 7;
 
@@ -81,9 +48,6 @@ void connectWiFi() {
     Serial.println(SERVER_PATH);
   } else {
     Serial.println("\n WiFi connection failed.");
-    Serial.println("   Make sure WIFI_SSID/PASSWORD are correct.");
-    Serial.println("   Eduroam won't work, use a phone hotspot.");
-    Serial.println("   Retrying in 10 seconds...");
   }
 }
 
@@ -94,12 +58,16 @@ int readSoil() {
   int raw = analogRead(SOIL_SIG);
   digitalWrite(SOIL_POWER, LOW);  // Power off (reduces corrosion)
 
-  // Map raw ADC (0-1023) to 0-100% moisture.
-  // Typical resistive sensor: ~900 = dry air, ~200 = submerged in water.
-  // CALIBRATE: open Serial Monitor, hold sensor in dry soil and note the
-  // raw value, then wet soil. Replace 900 and 200 with your readings.
-  int moisture = map(raw, 900, 200, 0, 100);
-  return constrain(moisture, 0, 100);
+  int moisture = map(raw, 222, 888, 0, 100);
+  if (raw < 222) {
+    moisture = 0;
+  }
+  
+  if (raw > 222) {
+    moisture = 100;
+  }
+
+  return moisture;
 }
 
 // ─── HTTP POST ────────────────────────────────────────────
